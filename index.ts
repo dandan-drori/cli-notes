@@ -38,7 +38,7 @@ async function listNotes() {
   try {
     const notes = await getAll();
     console.log('- - - - - 1 - - - - -');
-    notes.forEach(({createdAt, title, text}:  any, idx: number) => {
+    notes.reverse().forEach(({createdAt, title, text}:  any, idx: number) => {
       const textArr = text.split('\\n');
       console.log(
 `
