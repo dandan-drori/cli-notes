@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { getDb } from './db';
-import { Note } from "./models/note";
+import { Note } from "../models/note";
 import {ObjectId} from "mongodb";
 
 async function getAll() {
@@ -23,7 +23,7 @@ async function update(note: Note) {
   }
   const db = await getDb();
   const col = await db.collection(process.env.NOTES_COL_NAME as string);
-  return col.findOneAndUpdate({ _id: noteToSave._id }, {$set: noteToSave});
+  return col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave });
 }
 
 async function save(note: Note) {

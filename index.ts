@@ -1,23 +1,22 @@
 #!/usr/bin/env ts-node
 
 import inquirer from 'inquirer';
-import {getAll, remove, save} from "./mongo";
+import {getAll, remove, save} from "./db/mongo";
 import {Note} from "./models/note";
 import {action, Actions} from "./questions/action";
 import {noteInfo} from "./questions/noteInfo";
 import {noteId as noteIdQuestion} from './questions/noteId';
 import {Colors} from "./colors";
 
-const ActionsFunctions = {
-  [Actions.list]: listNotes,
-  [Actions.create]: createNote,
-  [Actions.remove]: removeNote,
-  [Actions.update]: updateNote,
-  [Actions.search]: searchNotes,
-}
-
 async function prompt() {
   const answers = await inquirer.prompt(action)
+  const ActionsFunctions = {
+    [Actions.list]: listNotes,
+    [Actions.create]: createNote,
+    [Actions.remove]: removeNote,
+    [Actions.update]: updateNote,
+    [Actions.search]: searchNotes,
+  }
   await ActionsFunctions[answers.action as Actions]();
 }
 
