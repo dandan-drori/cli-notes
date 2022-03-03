@@ -1,23 +1,12 @@
 #!/usr/bin/env ts-node
 
 import inquirer from 'inquirer';
-import { access, readFile, writeFile, mkdir, readdir } from 'fs/promises';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-import { homedir } from 'os';
 import {getAll, remove, save} from "./mongo";
-
-const execPrm = promisify(exec);
-
-const notesDir = `${homedir()}/.notes`;
-
-export enum Actions {
-  list = "LIST",
-  create = "CREATE",
-  remove = "DELETE",
-  update = "UPDATE",
-  search = "SEARCH",
-}
+import {Note} from "./models/note";
+import {action, Actions} from "./questions/action";
+import {noteInfo} from "./questions/noteInfo";
+import {noteId as noteIdQuestion} from './questions/noteId';
+import {Colors} from "./colors";
 
 const ActionsFunctions = {
   [Actions.list]: listNotes,
@@ -28,133 +17,76 @@ const ActionsFunctions = {
 }
 
 async function prompt() {
-  const questions = [
-    {
-      type: "list",
-      name: "action",
-      message: "What would you like to do?",
-      choices: [ 
-        {
-          name: "List all notes",
-          value: Actions.list,
-        },
-        {
-          name: "Create a new note",
-          value: Actions.create,
-        },
-        {
-          name: "Delete a note",
-          value: Actions.remove,
-        },
-        {
-          name: "Update a note",
-          value: Actions.update,
-        },
-        {
-          name: "Search notes",
-          value: Actions.search,
-        },
-      ]
-    }
-  ]
-  const answers = await inquirer.prompt(questions)
-  ActionsFunctions[answers.action as Actions]();
+  const answers = await inquirer.prompt(action)
+  await ActionsFunctions[answers.action as Actions]();
 }
 
 async function getNoteInfo() {
-  const questions = [
-    {
-      type: "input",
-      name: "title",
-      message: "Note's title?",
-      default: "Title",
-    },
-    {
-      type: "input",
-      name: "text",
-      message: "Note's text?",
-      default: "Text",
-    },
-  ]
-  const {title, text} = await inquirer.prompt(questions)
-  const createdAt = new Date().toLocaleString();
+  const {title, text} = await inquirer.prompt(noteInfo);
+  const createdAt = new Date().toISOString();
   return {title, text, createdAt};
+}
+
+async function getNoteId() {
+  const notes = await getAll();
+  const choices = notes.map(({title, _id}: Partial<Note>) => ({name: title, value: _id}));
+  const questions = [{...noteIdQuestion[0], choices}];
+  const {noteId} = await inquirer.prompt(questions);
+  return noteId;
 }
 
 async function listNotes() {
   try {
-    await access(notesDir);
-    try {
-      const titles = await readdir(notesDir); 
-      const notesPrms = titles.map(async (title) => await readFile(`${notesDir}/${title}`));
-      const notesBuffers = await Promise.all(notesPrms);
-      const notes = notesBuffers.map(noteBuffer => {
-        const noteRows = noteBuffer.toString().split('\n');
-        const [createdAt, title] = noteRows;
-        const textArr = noteRows.slice(2, noteRows.length);
-        if (!textArr[textArr.length - 1]) textArr.splice(textArr.length - 1, 1);
-        const text = textArr.join('\n');
-        return {
-          title,
-          text,
-          createdAt
-        };
-      });
-      console.log(notes);
-    } catch (err) {
-      console.log('Error: failed to read ~/.notes directory.');
-      process.exit(1);
-    }
+    const notes = await getAll();
+    console.log('- - - - - 1 - - - - -');
+    notes.forEach(({createdAt, title, text}:  any, idx: number) => {
+      const textArr = text.split('\\n');
+      console.log(
+`
+${Colors.Dim}${new Date(createdAt).toLocaleString('he-il')}${Colors.Reset}
+
+${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
+
+${textArr.join('\n')}
+
+- - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`
+      );
+    })
   } catch (e) {
-    console.log('Error: failed to locate ~/.notes directory.');
-    process.exit(1);
+    console.log('Error: failed to fetch notes:', e);
   }
 }
 
 async function createNote() {
   try {
-    await access(notesDir);
-    createNoteWithoutDir();
+    const note = await getNoteInfo();
+    return await save(note);
   } catch (e) {
-    try {
-      await mkdir(notesDir, { recursive: true });
-      createNoteWithoutDir();
-    } catch (err) {
-      console.log('Error: failed to create notes directory.');
-      process.exit(1);
-    }
-  } 
-
-  async function createNoteWithoutDir() {
-    const {title, text, createdAt} = await getNoteInfo();
-    try {
-      await access(`${notesDir}${title}`);
-      console.log('Error: note already exists!');
-      process.exit(1);
-    } catch (e) {
-      try {
-        await writeFile(`${notesDir}/${title}`, `${createdAt}\n${title}\n${text}`);
-      } catch (err) {
-        console.log('Error: failed to create note.');
-        process.exit(1);
-      }
-    } finally {
-      console.log('Note created successfully');
-      console.log(`  cd ~/.notes/${title}`)
-    }
+    console.log('Error: unable to create a note', e);
+  } finally {
+    console.log('Note created successfully');
   }
 }
 
-async function removeNote() {}
+async function removeNote() {
+  try {
+    const id = await getNoteId();
+    await remove(id);
+  } catch (e) {
+    console.log('Error: unable to delete note', e);
+  } finally {
+    console.log('Note deleted successfully');
+  }
+}
 async function updateNote() {}
 async function getNote() {}
-async function searchNotes() {}
+async function searchNotes() {
+  // todo start with checking if the input is a type of date - then search for createdAt that matches (exact date or exact hour)
+  // todo if the input is plain text (not a date) - start by searching for a match in title (bonus - fuzzy find, like ignore case and match no only beggining using regex)
+  // todo if still no match is found - search for a match in the text
+}
 
 ;(async () => {
-  // await save({title: 'Test Title', text: 'Test Text', createdAt: new Date().toLocaleString()});
-  await remove("621eb36ad57134e339c94a08");
-  const res = await getAll();
-  console.log(res);
+  await prompt();
   process.exit(1);
-  // await prompt();
 })();
