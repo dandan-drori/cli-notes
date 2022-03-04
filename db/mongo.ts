@@ -10,6 +10,12 @@ async function getAll() {
   return col.find({}).toArray();
 }
 
+async function getNoteById(noteId: string) {
+  const db = await getDb();
+  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  return col.findOne({ _id: new ObjectId(noteId) });
+}
+
 async function insertOne(note: Note) {
   const db = await getDb();
   const col = await db.collection(process.env.NOTES_COL_NAME as string);
@@ -50,4 +56,5 @@ export {
   save,
   remove,
   removeByTitle,
+  getNoteById,
 }
