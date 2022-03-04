@@ -68,9 +68,11 @@ function buildNoteStr(note: Note): string {
   return noteStr;
 }
 
-function buildDecoratedNoteStr(note: Note): string {
+function buildDecoratedNoteStr(note: Note, dateIsMatch?: boolean): string {
+  const date = new Date(note.createdAt).toLocaleString('he-il');
+  const decorateDate = dateIsMatch ? `${Colors.Bright}${Colors.Red}` : '';
   let noteStr = ``;
-  noteStr += `${Colors.Dim}${new Date(note.createdAt).toLocaleString('he-il')}${Colors.Reset}`;
+  noteStr += `${Colors.Dim}${decorateDate}${date}${Colors.Reset}`;
   for (const key in note) {
     if (key === '_id' || key === 'createdAt') continue;
     const style = key === 'title' ? `${Colors.Bright}${Colors.Underscore}` : '';
@@ -114,7 +116,7 @@ async function getUpdatedNote() {
 async function listNotes() {
   try {
     const notes = await getAll();
-    console.log('- - - - - 1 - - - - -');
+    if (notes.length) console.log('- - - - - 1 - - - - -');
     notes.reverse().forEach(({createdAt, title, text}:  any, idx: number) => {
       const textArr = text.split('\\n');
       console.log(
@@ -129,18 +131,17 @@ ${textArr.join('\n')}
       );
     })
   } catch (e) {
-    console.log('Error: failed to fetch notes:', e);
+    console.log(`${Colors.Red}Error:${Colors.Reset} failed to fetch notes:`, e);
   }
 }
 
 async function createNote() {
   try {
     const note = await getNoteInfo();
-    return await save(note);
+    await save(note);
+    console.log(`${Colors.Green}Done:${Colors.Reset} note created successfully`);
   } catch (e) {
-    console.log('Error: unable to create a note', e);
-  } finally {
-    console.log('Note created successfully');
+    console.log(`${Colors.Red}Error:${Colors.Reset} failed to create note:`, e);
   }
 }
 
@@ -148,19 +149,18 @@ async function removeNote() {
   try {
     const id = await getNoteId();
     await remove(id);
+    console.log(`${Colors.Green}Done:${Colors.Reset} note deleted successfully`);
   } catch (e) {
-    console.log('Error: unable to delete note', e);
-  } finally {
-    console.log('Note deleted successfully');
+    console.log(`${Colors.Red}Error:${Colors.Reset} failed to delete note:`, e);
   }
 }
 async function updateNote() {
   try {
     const updatedNote = await getUpdatedNote();
     await save(updatedNote);
-    console.log('Note updated successfully');
+    console.log(`${Colors.Green}Done:${Colors.Reset} note updated successfully`);
   } catch (e) {
-    console.log('Error: failed to update note:', e);
+    console.log(`${Colors.Red}Error:${Colors.Reset} failed to update note:`, e);
   }
 }
 
@@ -173,7 +173,7 @@ async function searchNotes() {
     createdAts.forEach((createdAt: string, idx: number) => {
       const date = new Date(createdAt).toLocaleDateString('he-il');
       if (date === searchStr) {
-        printPrettyNote(idx, titles, texts, createdAts);
+        printPrettyNote(idx, titles, texts, createdAts, 'createdAt', [createdAt]);
       }
     });
     return;
@@ -183,7 +183,7 @@ async function searchNotes() {
     const regex = new RegExp(searchStr, 'i');
     if (title.match(regex)) {
       foundMatchInTitle = true;
-      printPrettyNote(idx, titles, texts, createdAts);
+      printPrettyNote(idx, titles, texts, createdAts, 'title', title.match(regex) as string[]);
     }
   })
   let foundMatchInText = false;
@@ -192,22 +192,30 @@ async function searchNotes() {
       const regex = new RegExp(searchStr, 'i');
       if (text.match(regex)) {
         foundMatchInText = true;
-        printPrettyNote(idx, titles, texts, createdAts);
+        printPrettyNote(idx, titles, texts, createdAts, 'text', text.match(regex) as string[]);
       }
     })
   }
   if (!foundMatchInText) console.log('No note found that matches your search.');
   // todo (bonus - fuzzy find, using score)
+  // todo - highlight searched term
+  // todo - consider splitting index.ts to multiple files
 
-  function printPrettyNote(idx: number, titles: string[], texts: string[], createdAts: string[]) {
+  function printPrettyNote(idx: number, titles: string[], texts: string[], createdAts: string[], field: 'title' | 'text' | 'createdAt', matches: string[]) {
     const note = {
       title: titles[idx],
       text: texts[idx],
       createdAt: createdAts[idx]
     }
+    if (field !== 'createdAt') {
+      const match = matches[0];
+      const startIdx = note[field].search(match);
+      const endIdx = startIdx + match.length;
+      note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${Colors.Red}${match}${Colors.Reset}${note[field].slice(endIdx)}`;
+    }
     console.log(
         `
-${buildDecoratedNoteStr(note)}
+${buildDecoratedNoteStr(note, field === 'createdAt')}
 
 - - - - - - - - - - -`);
   }
