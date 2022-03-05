@@ -1,15 +1,12 @@
 #!/usr/bin/env ts-node
 
 import inquirer from 'inquirer';
-import {getAll, getNoteById, remove, save} from "./db/mongo";
+import {getAll, remove, save} from "./db/mongo";
 import {Note} from "./models/note";
 import {action, Actions} from "./questions/action";
-import {noteInfo} from "./questions/noteInfo";
-import {noteId as noteIdQuestion} from './questions/noteId';
 import {Colors} from "./colors";
-import {noteToUpdate as noteToUpdateQuestion} from "./questions/noteToUpdate";
-import {searchStr as searchStrQuestion} from "./questions/searchStr";
-import {ObjectId} from "mongodb";
+import {getFieldsData, isDateFormat, printPrettyNote} from "./utils/utils";
+import {getNoteId, getNoteInfo, getSearchStr, getUpdatedNote} from "./inquire";
 
 async function prompt() {
   const answers = await inquirer.prompt(action)
@@ -21,96 +18,6 @@ async function prompt() {
     [Actions.search]: searchNotes,
   }
   await ActionsFunctions[answers.action as Actions]();
-}
-
-function isDateFormat(str: string): boolean {
-  const regex = /\d{1,2}\.\d{1,2}\.\d{4}/ig;
-  return regex.test(str);
-}
-
-function getFieldsData(notes: Note[]): {titles: string[], texts: string[], createdAts: string[]} {
-  return notes.reduce((acc: {titles: string[], texts: string[], createdAts: string[]}, {title, text, createdAt}: Note) => {
-    acc = {titles: [...acc.titles, title], texts: [...acc.texts, text], createdAts: [...acc.createdAts, createdAt]};
-    return acc;
-  }, {titles: [], texts: [], createdAts: []});
-}
-
-async function getSearchStr(): Promise<string> {
-  const {searchStr} = await inquirer.prompt(searchStrQuestion);
-  return searchStr;
-}
-
-async function getNoteInfo(): Promise<Note> {
-  const {title, text} = await inquirer.prompt(noteInfo);
-  const createdAt = new Date().toISOString();
-  return {title, text, createdAt};
-}
-
-async function getNotesChoices(): Promise<Array<{name: string | undefined, value: ObjectId | undefined}>> {
-  const notes = await getAll();
-  return notes.map(({title, _id}: Partial<Note>) => ({name: title, value: _id}));
-}
-
-async function getNoteId(): Promise<string> {
-  const choices = await getNotesChoices();
-  const questions = [{...noteIdQuestion, choices}];
-  const {noteId} = await inquirer.prompt(questions);
-  return noteId;
-}
-
-function buildNoteStr(note: Note): string {
-  let noteStr = ``;
-  noteStr += new Date(note.createdAt).toLocaleString('he-il');
-  for (const key in note) {
-    if (key === '_id' || key === 'createdAt') continue;
-    noteStr += '\n\n' + note[key as keyof Note];
-  }
-  return noteStr;
-}
-
-function buildDecoratedNoteStr(note: Note, dateIsMatch?: boolean): string {
-  const date = new Date(note.createdAt).toLocaleString('he-il');
-  const decorateDate = dateIsMatch ? `${Colors.Bright}${Colors.Red}` : '';
-  let noteStr = ``;
-  noteStr += `${Colors.Dim}${decorateDate}${date}${Colors.Reset}`;
-  for (const key in note) {
-    if (key === '_id' || key === 'createdAt') continue;
-    const style = key === 'title' ? `${Colors.Bright}${Colors.Underscore}` : '';
-    if (key === 'text') {
-      noteStr += '\n\n' + style + (note[key as keyof Note] as string).split('\\n').join('\n') + Colors.Reset;
-      continue;
-    }
-    noteStr += '\n\n' + style + note[key as keyof Note] + Colors.Reset;
-  }
-  return noteStr;
-}
-
-async function getNote(noteId: string): Promise<Note> {
-  return await getNoteById(noteId) as never as Promise<Note>;
-}
-
-async function getUpdatedNote() {
-  const choices = await getNotesChoices();
-  const questions = [{...noteToUpdateQuestion, choices}];
-  const {noteId} = await inquirer.prompt(questions);
-  const noteToUpdate = await getNote(noteId);
-  const noteStr = buildNoteStr(noteToUpdate);
-
-  const {updatedNoteStr} = await inquirer.prompt([
-    {
-      type: "editor",
-      name: "updatedNoteStr",
-      message: "edit a note",
-      default: noteStr
-    },
-  ]);
-  const [title, text, createdAt] = updatedNoteStr.split('\n\n');
-  return {
-    _id: noteId,
-    title,
-    text,
-    createdAt: new Date(createdAt.trim()).toISOString()
-  }
 }
 
 async function listNotes() {
@@ -197,31 +104,10 @@ async function searchNotes() {
     })
   }
   if (!foundMatchInText) console.log('No note found that matches your search.');
-  // todo (bonus - fuzzy find, using score)
-  // todo - highlight searched term
-  // todo - consider splitting index.ts to multiple files
-
-  function printPrettyNote(idx: number, titles: string[], texts: string[], createdAts: string[], field: 'title' | 'text' | 'createdAt', matches: string[]) {
-    const note = {
-      title: titles[idx],
-      text: texts[idx],
-      createdAt: createdAts[idx]
-    }
-    if (field !== 'createdAt') {
-      const match = matches[0];
-      const startIdx = note[field].search(match);
-      const endIdx = startIdx + match.length;
-      note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${Colors.Red}${match}${Colors.Reset}${note[field].slice(endIdx)}`;
-    }
-    console.log(
-        `
-${buildDecoratedNoteStr(note, field === 'createdAt')}
-
-- - - - - - - - - - -`);
-  }
 }
 
 ;(async () => {
   await prompt();
   process.exit(1);
+  // todo (bonus - fuzzy find, using score)
 })();
