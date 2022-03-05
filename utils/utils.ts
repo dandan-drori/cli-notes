@@ -40,6 +40,22 @@ export function buildNoteStr(note: Note): string {
     return noteStr;
 }
 
+export function getIndicesOf(searchStr: string, str: string, caseSensitive: boolean = false) {
+    let searchStrLen = searchStr.length;
+    if (searchStrLen == 0) return [];
+    let startIndex = 0, index, indices = [];
+    if (!caseSensitive) {
+        str = str.toLowerCase();
+        searchStr = searchStr.toLowerCase();
+    }
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+}
+
+
 export function printPrettyNote(idx: number, titles: string[], texts: string[], createdAts: string[], field: 'title' | 'text' | 'createdAt', matches: string[]) {
     const note = {
         title: titles[idx],
@@ -48,9 +64,13 @@ export function printPrettyNote(idx: number, titles: string[], texts: string[], 
     }
     if (field !== 'createdAt') {
         const match = matches[0];
-        const startIdx = note[field].search(match);
-        const endIdx = startIdx + match.length;
-        note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${Colors.Red}${match}${Colors.Reset}${note[field].slice(endIdx)}`;
+        const indices = getIndicesOf(match, note[field]);
+        const colorsLength = Colors.Bright.length + Colors.Red.length + Colors.Reset.length;
+        indices.forEach((startIdx: number, idx: number) => {
+            startIdx = startIdx + colorsLength * idx;
+            const endIdx = startIdx + match.length;
+            note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${Colors.Red}${match}${Colors.Reset}${note[field].slice(endIdx)}`;
+        })
     }
     console.log(
         `

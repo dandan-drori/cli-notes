@@ -109,5 +109,4 @@ async function searchNotes() {
 ;(async () => {
   await prompt();
   process.exit(1);
-  // todo (bonus - fuzzy find, using score)
 })();

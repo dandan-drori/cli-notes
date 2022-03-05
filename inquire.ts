@@ -50,7 +50,7 @@ export async function getUpdatedNote() {
             default: noteStr
         },
     ]);
-    const [title, text, createdAt] = updatedNoteStr.split('\n\n');
+    const [createdAt, title, text] = updatedNoteStr.split('\n\n');
     return {
         _id: noteId,
         title,
