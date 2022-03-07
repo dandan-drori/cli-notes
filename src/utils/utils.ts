@@ -7,7 +7,7 @@ export function buildDecoratedNoteStr(note: Note, dateIsMatch?: boolean): string
     let noteStr = ``;
     noteStr += `${Colors.Dim}${decorateDate}${date}${Colors.Reset}`;
     for (const key in note) {
-        if (key === '_id' || key === 'createdAt') continue;
+        if (key === '_id' || key === 'createdAt' || key === 'password') continue;
         const style = key === 'title' ? `${Colors.Bright}${Colors.Underscore}` : '';
         if (key === 'text') {
             noteStr += '\n\n' + style + (note[key as keyof Note] as string).split('\\n').join('\n') + Colors.Reset;
@@ -79,8 +79,17 @@ ${buildDecoratedNoteStr(note, field === 'createdAt')}
 - - - - - - - - - - -`);
 }
 
+export function printNote(note: Note) {
+    const noteStr = buildDecoratedNoteStr(note);
+    console.log(
+`- - - - - - - - - - -
+
+${noteStr}        
+- - - - - - - - - - -`);
+}
+
 export function printNoteList(notes: Note[]): Note[] {
-    const lockedNotes = [];
+    const lockedNotes: Note[] = [];
     notes.forEach((note: Note, idx: number) => {
         const {createdAt, title, text, password} = note;
         if (password) {
@@ -91,7 +100,7 @@ ${Colors.Dim}${new Date(createdAt).toLocaleString('he-il')}${Colors.Reset}
 
 ${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
 
-This note is Locked!
+${Colors.Red}${Colors.Bright}This note is Locked!${Colors.Reset}
 
 - - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`);
             return;

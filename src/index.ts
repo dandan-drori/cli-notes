@@ -4,14 +4,13 @@ import inquirer from 'inquirer';
 import {getAll, remove, save} from "./db/mongo";
 import {Note} from "./models/note";
 import {action, Actions} from "./questions/action";
-import {getFieldsData, isDateFormat, printNoteList, printPrettyNote} from "./utils/utils";
+import {getFieldsData, isDateFormat, printNote, printNoteList, printPrettyNote} from "./utils/utils";
 import {
   getNoteId,
   getNoteInfo,
   getSearchStr,
   getUpdatedNote,
-  lockedNotesPrompt,
-  lockNote as lockNoteInquirer
+  lockNote as lockNoteInquirer, unlockNotesPrompt
 } from "./inquire";
 import {Logger} from "./utils/logger";
 
@@ -35,9 +34,13 @@ async function listNotes() {
     const notes = await getAll();
     if (notes.length) console.log('- - - - - 1 - - - - -');
     const lockedNotes = printNoteList((notes as Note[]).reverse());
-    // lockedNotes.forEach((note: Note) => {
-    //   const password = await lockedNotesPrompt();
-    // })
+    if (!lockedNotes.length) return;
+    const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
+    if (isNoteUnlocked) {
+      printNote(noteToUnlock as Note);
+      return;
+    }
+    logger.error('Incorrect password');
   } catch (e) {
     logger.error(`failed to fetch notes: ${e}`);
   }

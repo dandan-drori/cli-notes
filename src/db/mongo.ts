@@ -23,14 +23,14 @@ async function insertOne(note: Note) {
   return col.insertOne(note);
 }
 
-async function update(note: Note) {
+async function update(note: Note): Promise<Note> {
   const noteToSave = {
     _id: new ObjectId(note._id),
     ...note
   }
   const db = await getDb();
   const col = await db.collection(process.env.NOTES_COL_NAME as string);
-  return col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave });
+  return col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave }) as never as Note;
 }
 
 async function save(note: Note) {
