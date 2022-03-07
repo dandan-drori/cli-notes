@@ -4,9 +4,18 @@ import inquirer from 'inquirer';
 import {getAll, remove, save} from "./db/mongo";
 import {Note} from "./models/note";
 import {action, Actions} from "./questions/action";
-import {Colors} from "./colors";
-import {getFieldsData, isDateFormat, printPrettyNote} from "./utils/utils";
-import {getNoteId, getNoteInfo, getSearchStr, getUpdatedNote} from "./inquire";
+import {getFieldsData, isDateFormat, printNoteList, printPrettyNote} from "./utils/utils";
+import {
+  getNoteId,
+  getNoteInfo,
+  getSearchStr,
+  getUpdatedNote,
+  lockedNotesPrompt,
+  lockNote as lockNoteInquirer
+} from "./inquire";
+import {Logger} from "./utils/logger";
+
+const logger = new Logger();
 
 async function prompt() {
   const answers = await inquirer.prompt(action)
@@ -16,6 +25,7 @@ async function prompt() {
     [Actions.remove]: removeNote,
     [Actions.update]: updateNote,
     [Actions.search]: searchNotes,
+    [Actions.lock]: lockNote,
   }
   await ActionsFunctions[answers.action as Actions]();
 }
@@ -24,21 +34,12 @@ async function listNotes() {
   try {
     const notes = await getAll();
     if (notes.length) console.log('- - - - - 1 - - - - -');
-    notes.reverse().forEach(({createdAt, title, text}:  any, idx: number) => {
-      const textArr = text.split('\\n');
-      console.log(
-`
-${Colors.Dim}${new Date(createdAt).toLocaleString('he-il')}${Colors.Reset}
-
-${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
-
-${textArr.join('\n')}
-
-- - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`
-      );
-    })
+    const lockedNotes = printNoteList((notes as Note[]).reverse());
+    // lockedNotes.forEach((note: Note) => {
+    //   const password = await lockedNotesPrompt();
+    // })
   } catch (e) {
-    console.log(`${Colors.Red}Error:${Colors.Reset} failed to fetch notes:`, e);
+    logger.error(`failed to fetch notes: ${e}`);
   }
 }
 
@@ -46,9 +47,9 @@ async function createNote() {
   try {
     const note = await getNoteInfo();
     await save(note);
-    console.log(`${Colors.Green}Done:${Colors.Reset} note created successfully`);
+    logger.success('note created successfully');
   } catch (e) {
-    console.log(`${Colors.Red}Error:${Colors.Reset} failed to create note:`, e);
+    logger.error(`failed to create note: ${e}`);
   }
 }
 
@@ -56,18 +57,19 @@ async function removeNote() {
   try {
     const id = await getNoteId();
     await remove(id);
-    console.log(`${Colors.Green}Done:${Colors.Reset} note deleted successfully`);
+    logger.success('note deleted successfully');
   } catch (e) {
-    console.log(`${Colors.Red}Error:${Colors.Reset} failed to delete note:`, e);
+    logger.error(`failed to delete note: ${e}`);
   }
 }
+
 async function updateNote() {
   try {
     const updatedNote = await getUpdatedNote();
     await save(updatedNote);
-    console.log(`${Colors.Green}Done:${Colors.Reset} note updated successfully`);
+    logger.success('note updated successfully');
   } catch (e) {
-    console.log(`${Colors.Red}Error:${Colors.Reset} failed to update note:`, e);
+    logger.error(`failed to update note: ${e}`);
   }
 }
 
@@ -103,7 +105,16 @@ async function searchNotes() {
       }
     })
   }
-  if (!foundMatchInText) console.log('No note found that matches your search.');
+  if (!foundMatchInText) logger.info('No note found that matches your search.');
+}
+
+async function lockNote() {
+  try {
+    await lockNoteInquirer();
+    logger.info('Note locked successfully');
+  } catch (e) {
+    logger.error(`failed to lock note: ${e}`);
+  }
 }
 
 ;(async () => {

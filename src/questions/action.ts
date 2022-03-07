@@ -4,6 +4,7 @@ export enum Actions {
     remove = "DELETE",
     update = "UPDATE",
     search = "SEARCH",
+    lock = "LOCK",
 }
 
 export const action = [
@@ -31,6 +32,10 @@ export const action = [
             {
                 name: "Search notes",
                 value: Actions.search,
+            },
+            {
+                name: "Lock a note",
+                value: Actions.lock,
             },
         ]
     }

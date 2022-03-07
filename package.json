@@ -2,15 +2,20 @@
   "name": "notes",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "build": "tsc"
+  },
   "author": "Dandan Drori",
   "license": "ISC",
   "dependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "bcrypt": "^5.0.1",
     "dotenv": "^16.0.0",
     "inquirer": "^8.2.0",
     "mongodb": "^4.4.0"
   },
   "devDependencies": {
-    "@types/inquirer": "^8.2.0"
+    "@types/inquirer": "^8.2.0",
+    "jsmin": "^1.0.1"
   }
 }

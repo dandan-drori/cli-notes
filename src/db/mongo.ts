@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { getDb } from './db';
 import { Note } from "../models/note";
-import {ObjectId} from "mongodb";
+import { ObjectId } from "mongodb";
+import { hash, compare } from "bcrypt";
 
 async function getAll() {
   const db = await getDb();
@@ -45,16 +46,22 @@ async function remove(noteId: string) {
   return col.findOneAndDelete({_id: new ObjectId(noteId)});
 }
 
-async function removeByTitle(title: string) {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
-  return col.findOneAndDelete({title});
+async function lockNote(note: Note, password: string) {
+  const rounds = 10;
+  note.password = await hash(password, rounds);
+  return await update(note);
+}
+
+async function unlockNote(note: Note, password: string) {
+  if (!note.password) return;
+  return await compare(password, note.password);
 }
 
 export {
   getAll,
   save,
   remove,
-  removeByTitle,
   getNoteById,
+  lockNote,
+  unlockNote,
 }

@@ -3,18 +3,21 @@ import {searchStr as searchStrQuestion} from "./questions/searchStr";
 import {Note} from "./models/note";
 import {noteInfo} from "./questions/noteInfo";
 import {ObjectId} from "mongodb";
-import {getAll, getNoteById} from "./db/mongo";
+import {getAll, getNoteById, lockNote as lockNoteDb} from "./db/mongo";
 import {noteId as noteIdQuestion} from "./questions/noteId";
 import {noteToUpdate as noteToUpdateQuestion} from "./questions/noteToUpdate";
 import {buildNoteStr} from "./utils/utils";
+import {notePassword} from "./questions/notePassword";
+import {noteToLock as noteToLockQuestion} from "./questions/noteToLock";
+import {seeNotes} from "./questions/seeNotes";
 
 async function getNote(noteId: string): Promise<Note> {
     return await getNoteById(noteId) as never as Promise<Note>;
 }
 
-async function getNotesChoices(): Promise<Array<{name: string | undefined, value: ObjectId | undefined}>> {
+async function getNotesChoices(): Promise<Array<{name: string, value: ObjectId | string}>> {
     const notes = await getAll();
-    return notes.map(({title, _id}: Partial<Note>) => ({name: title, value: _id}));
+    return notes.map(({title, _id}: Partial<Note>) => ({name: title as string, value: _id as ObjectId}));
 }
 
 export async function getSearchStr(): Promise<string> {
@@ -35,7 +38,7 @@ export async function getNoteId(): Promise<string> {
     return noteId;
 }
 
-export async function getUpdatedNote() {
+export async function getUpdatedNote(): Promise<Note> {
     const choices = await getNotesChoices();
     const questions = [{...noteToUpdateQuestion, choices}];
     const {noteId} = await inquirer.prompt(questions);
@@ -57,4 +60,21 @@ export async function getUpdatedNote() {
         text,
         createdAt: new Date(createdAt.trim()).toISOString()
     }
+}
+
+export async function lockNote(): Promise<Note> {
+    const choices = await getNotesChoices();
+    const questions = [{...noteToLockQuestion, choices}];
+    const {noteId} = await inquirer.prompt(questions);
+    const noteToLock = await getNote(noteId);
+    const {password} = await inquirer.prompt(notePassword);
+    return await lockNoteDb(noteToLock, password);
+}
+
+export async function lockedNotesPrompt(): Promise<string> {
+    const {seeNotes} = await inquirer.prompt(seeNotes);
+    if (!seeNotes) process.exit(1);
+    // todo prompt for password
+    // const {password} = await inquirer.prompt(promptPassword);
+    // return password;
 }

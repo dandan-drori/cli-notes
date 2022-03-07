@@ -78,3 +78,36 @@ ${buildDecoratedNoteStr(note, field === 'createdAt')}
 
 - - - - - - - - - - -`);
 }
+
+export function printNoteList(notes: Note[]): Note[] {
+    const lockedNotes = [];
+    notes.forEach((note: Note, idx: number) => {
+        const {createdAt, title, text, password} = note;
+        if (password) {
+            lockedNotes.push(note);
+            console.log(
+`
+${Colors.Dim}${new Date(createdAt).toLocaleString('he-il')}${Colors.Reset}
+
+${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
+
+This note is Locked!
+
+- - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`);
+            return;
+        }
+
+        const textArr = text.split('\\n');
+        console.log(
+            `
+${Colors.Dim}${new Date(createdAt).toLocaleString('he-il')}${Colors.Reset}
+
+${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
+
+${textArr.join('\n')}
+
+- - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`
+        );
+    });
+    return lockedNotes;
+}
