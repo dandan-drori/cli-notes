@@ -12,7 +12,8 @@
     "bcrypt": "^5.0.1",
     "dotenv": "^16.0.0",
     "inquirer": "^8.2.0",
-    "mongodb": "^4.4.0"
+    "mongodb": "^4.4.0",
+    "twilio": "^3.75.1"
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.0",

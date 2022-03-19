@@ -57,6 +57,12 @@ async function unlockNote(note: Note, password: string) {
   return await compare(password, note.password);
 }
 
+async function removeLockFromNote(note: Note) {
+  const db = await getDb();
+  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} }) as never as Note;
+}
+
 export {
   getAll,
   save,
@@ -64,4 +70,5 @@ export {
   getNoteById,
   lockNote,
   unlockNote,
+  removeLockFromNote,
 }
