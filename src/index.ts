@@ -35,15 +35,23 @@ async function listNotes() {
     if (notes.length) console.log('- - - - - 1 - - - - -');
     const lockedNotes = printNoteList((notes as Note[]).reverse());
     if (!lockedNotes.length) return;
-    const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
-    if (isNoteUnlocked) {
-      printNote(noteToUnlock as Note);
-      return;
+    let isNoteUnlocked = await retryUnlock(lockedNotes);
+    while(!isNoteUnlocked) {
+      isNoteUnlocked = await retryUnlock(lockedNotes);
     }
     logger.error('Incorrect password');
   } catch (e) {
     logger.error(`failed to fetch notes: ${e}`);
   }
+}
+
+async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
+    const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
+    if (isNoteUnlocked) {
+      printNote(noteToUnlock as Note);
+      return true;
+    }
+    return false;
 }
 
 async function createNote() {
@@ -85,6 +93,10 @@ async function searchNotes() {
     createdAts.forEach((createdAt: string, idx: number) => {
       const date = new Date(createdAt).toLocaleDateString('he-il');
       if (date === searchStr) {
+	if (notes[idx].password) {
+          console.log('This note is locked!');
+	  return;
+	}
         printPrettyNote(idx, titles, texts, createdAts, 'createdAt', [createdAt]);
       }
     });
@@ -95,7 +107,11 @@ async function searchNotes() {
     const regex = new RegExp(searchStr, 'i');
     if (title.match(regex)) {
       foundMatchInTitle = true;
-      printPrettyNote(idx, titles, texts, createdAts, 'title', title.match(regex) as string[]);
+      if (notes[idx].password) {
+        console.log('This note is locked!');
+      } else {
+        printPrettyNote(idx, titles, texts, createdAts, 'title', title.match(regex) as string[]);
+      }
     }
   })
   let foundMatchInText = false;
@@ -104,11 +120,15 @@ async function searchNotes() {
       const regex = new RegExp(searchStr, 'i');
       if (text.match(regex)) {
         foundMatchInText = true;
+        if (notes[idx].password) {
+          console.log('This note is locked!');
+        } else {
         printPrettyNote(idx, titles, texts, createdAts, 'text', text.match(regex) as string[]);
+	}
       }
     })
   }
-  if (!foundMatchInText) logger.info('No note found that matches your search.');
+  if (!foundMatchInTitle && !foundMatchInText) logger.info('No note found that matches your search.');
 }
 
 async function lockNote() {

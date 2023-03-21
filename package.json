@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "./src/index.ts"
   },
   "author": "Dandan Drori",
   "license": "ISC",
@@ -11,7 +12,8 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.0.0",
     "inquirer": "^8.2.0",
-    "mongodb": "^4.4.1"
+    "mongodb": "^4.4.1",
+    "twilio": "^3.77.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
