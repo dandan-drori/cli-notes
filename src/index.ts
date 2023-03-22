@@ -103,17 +103,21 @@ async function searchNotes() {
     return;
   }
   let foundMatchInTitle = false;
-  titles.forEach((title: string, idx: number) => {
+  for (let i=0; i<titles.length; ++i) {
+    const title = titles[i];
     const regex = new RegExp(searchStr, 'i');
     if (title.match(regex)) {
       foundMatchInTitle = true;
-      if (notes[idx].password) {
+      if (notes[i].password) {
         console.log('This note is locked!');
-      } else {
-        printPrettyNote(idx, titles, texts, createdAts, 'title', title.match(regex) as string[]);
-      }
-    }
-  })
+	let isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
+	while(!isNoteUnlocked) {
+	  isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
+	}
+      } 
+      printPrettyNote(i, titles, texts, createdAts, 'title', title.match(regex) as string[]);
+   }
+  }
   let foundMatchInText = false;
   if (!foundMatchInTitle) {
     texts.forEach((text: string, idx: number) => {
