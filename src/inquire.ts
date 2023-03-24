@@ -6,10 +6,11 @@ import {ObjectId} from "mongodb";
 import {getAll, getNoteById, lockNote as lockNoteDb, unlockNote as unlockNoteDb} from "./db/mongo";
 import {noteId as noteIdQuestion} from "./questions/noteId";
 import {noteToUpdate as noteToUpdateQuestion} from "./questions/noteToUpdate";
-import {buildNoteStr} from "./utils/utils";
+import {buildNoteStr, convertDateStringToAmerican} from "./utils/utils";
 import {notePassword} from "./questions/notePassword";
 import {noteToLock as noteToLockQuestion} from "./questions/noteToLock";
 import {noteToUnlock as noteToUnlockQuestion} from "./questions/noteToUnlock";
+import {retryUnlock} from "./index";
 
 async function getNote(noteId: string): Promise<Note> {
     return await getNoteById(noteId) as never as Promise<Note>;
@@ -43,6 +44,14 @@ export async function getUpdatedNote(): Promise<Note> {
     const questions = [{...noteToUpdateQuestion, choices}];
     const {noteId} = await inquirer.prompt(questions);
     const noteToUpdate = await getNote(noteId);
+
+    if (noteToUpdate.password) {
+      let isUnlocked = await retryUnlock([noteToUpdate]);
+      while (!isUnlocked) {
+        isUnlocked = await retryUnlock([noteToUpdate])
+      }
+    }
+
     const noteStr = buildNoteStr(noteToUpdate);
 
     const {updatedNoteStr} = await inquirer.prompt([
@@ -57,8 +66,8 @@ export async function getUpdatedNote(): Promise<Note> {
     return {
         _id: noteId,
         title,
-        text,
-        createdAt: new Date(createdAt.trim()).toISOString()
+        text,	
+        createdAt: new Date(convertDateStringToAmerican(createdAt).trim()).toISOString()
     }
 }
 

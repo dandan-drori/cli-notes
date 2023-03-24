@@ -37,15 +37,15 @@ async function listNotes() {
     if (!lockedNotes.length) return;
     let isNoteUnlocked = await retryUnlock(lockedNotes);
     while(!isNoteUnlocked) {
+      logger.error('Incorrect password');
       isNoteUnlocked = await retryUnlock(lockedNotes);
     }
-    logger.error('Incorrect password');
   } catch (e) {
     logger.error(`failed to fetch notes: ${e}`);
   }
 }
 
-async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
+export async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
     const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
     if (isNoteUnlocked) {
       printNote(noteToUnlock as Note);
