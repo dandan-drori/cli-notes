@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import {Note} from "./models/note";
 import {ObjectId} from "mongodb";
 import {getAll, getNoteById, lockNote as lockNoteDb, unlockNote as unlockNoteDb} from "./db/mongo";
-import {buildNoteStr, shareNote as shareNoteUtil} from "./utils/utils";
+import {buildNoteStr, shareNote as shareNoteUtil, convertDateStringToAmerican} from "./utils/utils";
 import {
     noteToShareQuestion,
     noteToLockQuestion,
@@ -13,6 +13,7 @@ import {
     notePasswordQuestion,
     searchStrQuestion,
     noteIdQuestion} from "./questions";
+import {retryUnlock} from "./index";
 
 async function getNote(noteId: string): Promise<Note> {
     return await getNoteById(noteId) as never as Promise<Note>;
@@ -47,6 +48,14 @@ export async function getUpdatedNote(): Promise<Note> {
     const questions = [{...noteToUpdateQuestion, choices}];
     const {noteId} = await inquirer.prompt(questions);
     const noteToUpdate = await getNote(noteId);
+
+    if (noteToUpdate.password) {
+        let isUnlocked = await retryUnlock([noteToUpdate]);
+        while (!isUnlocked) {
+            isUnlocked = await retryUnlock([noteToUpdate])
+        }
+    }
+
     const noteStr = buildNoteStr(noteToUpdate);
 
     const {updatedNoteStr} = await inquirer.prompt([
@@ -57,12 +66,12 @@ export async function getUpdatedNote(): Promise<Note> {
             default: noteStr
         },
     ]);
-    const [lastModified, title, text] = updatedNoteStr.split('\n\n');
+    const [lastModified, createdAt, title, text] = updatedNoteStr.split('\n\n');
     return {
         _id: noteId,
         title,
-        text,
-        createdAt: noteToUpdate.createdAt,
+        text,	
+        createdAt: new Date(convertDateStringToAmerican(createdAt).trim()).toISOString(),
         lastModified: new Date().toISOString(),
     }
 }

@@ -96,18 +96,23 @@ ${noteStr}
 
 export function printNoteList(notes: Note[]): Note[] {
     const lockedNotes: Note[] = [];
+    const sortBy = 'createdAt';
+    const sortedNotes = sortNotesBy(notes, sortBy);
     notes.forEach((note: Note, idx: number) => {
-        const {lastModified, title, text, password} = note;
-        const lastModifiedVal = lastModified ?? new Date().toISOString();
+    const {createdAt, lastModified, title, text, password} = note;
+    const lastModifiedVal = lastModified ?? new Date().toISOString();
+	const decoratedDate = decorateText(Colors.Dim, new Date(createdAt).toLocaleString('he-IL'));
+	const decoratedTitle = decorateText(Colors.Underscore + Colors.Bright, title);
         if (password) {
             lockedNotes.push(note);
+            const lockedWarning = decorateText(Colors.Red + Colors.Bright, 'This note is Locked!');
             console.log(
 `
-${Colors.Dim}${new Date(lastModifiedVal).toLocaleString('he-il')}${Colors.Reset}
+${decoratedDate}
 
-${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
+${decoratedTitle}
 
-${Colors.Red}${Colors.Bright}This note is Locked!${Colors.Reset}
+${lockedWarning}
 
 - - - - - ${idx + 1 < notes.length ? idx + 2 : '-'} - - - - -`);
             return;
@@ -116,9 +121,9 @@ ${Colors.Red}${Colors.Bright}This note is Locked!${Colors.Reset}
         const textArr = text.split('\\n');
         console.log(
             `
-${Colors.Dim}${new Date(lastModifiedVal).toLocaleString('he-il')}${Colors.Reset}
+${decoratedDate}
 
-${Colors.Underscore}${Colors.Bright}${title}${Colors.Reset}
+${decoratedTitle}
 
 ${textArr.join('\n')}
 
@@ -158,4 +163,20 @@ export async function shareNote(noteToShare: Note): Promise<String> {
         }
         return noteStr;
     }
+}
+export function convertDateStringToAmerican(generalDate: string): string {
+    const [date, time] = generalDate.split(',');
+    const [day, month, year] = date.split('.');
+    const americanDate = [month, day, year].join('.');
+    return [americanDate, time].join(',');
+}
+
+export function decorateText(decor: string, text: string): string {
+    return `${decor}${text}${Colors.Reset}`;
+}
+
+export function sortNotesBy(notes: Note[], sortBy: 'createdAt' | 'title' | 'text'): Note[] {
+    return notes.sort((a: Note, b: Note) => {
+    return a[sortBy] > b[sortBy] ? 1 : a[sortBy] < b[sortBy] ? -1 : 0;
+    });
 }

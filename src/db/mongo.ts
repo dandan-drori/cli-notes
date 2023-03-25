@@ -3,7 +3,7 @@ dotenv.config();
 import { getDb } from './db';
 import { Note } from "../models/note";
 import { ObjectId } from "mongodb";
-import { hash, compare } from "bcrypt";
+import { hash, compare } from "bcryptjs";
 
 async function getAll() {
   const db = await getDb();
