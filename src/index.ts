@@ -11,6 +11,8 @@ import {
 	printNote,
 	printNoteList,
 	printPrettyNote,
+  retryUnlock,
+  unlockNoteWithRetry,
 } from './utils/utils';
 import {
 	getNoteId,
@@ -20,6 +22,7 @@ import {
 	lockNote as lockNoteInquirer,
 	unlockNotesPrompt,
 	shareNote as shareNoteInquirer,
+  editTags as editTagsInquirer,
 } from './inquire';
 import { Logger } from './utils/logger';
 
@@ -36,6 +39,7 @@ async function prompt() {
 		[Actions.lock]: lockNote,
 		[Actions.unlock]: unlockNote,
 		[Actions.share]: shareNote,
+    [Actions.editTags]: editTags,
 	};
 	await ActionsFunctions[answers.action as Actions]();
 }
@@ -43,7 +47,7 @@ async function prompt() {
 async function listNotes() {
 	try {
 		const notes = await getAll();
-		if (notes.length) console.log('- - - - - 1 - - - - -');
+		if (notes.length) logger.info('- - - - - 1 - - - - -');
 		const lockedNotes = printNoteList((notes as Note[]).reverse());
 		if (!lockedNotes.length) return;
 		let isNoteUnlocked = await retryUnlock(lockedNotes);
@@ -54,15 +58,6 @@ async function listNotes() {
 	} catch (e) {
 		logger.error(`failed to fetch notes: ${e}`);
 	}
-}
-
-export async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
-	const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
-	if (isNoteUnlocked) {
-		printNote(noteToUnlock as Note);
-		return true;
-	}
-	return false;
 }
 
 async function createNote() {
@@ -97,17 +92,17 @@ async function updateNote() {
 
 async function searchNotes() {
 	const notes = await getAll();
-	const { titles, texts, lastModifieds } = getFieldsData(notes as Note[]);
+	const { titles, texts, createdAts } = getFieldsData(notes as Note[]);
 	const searchStr = await getSearchStr();
 	if (isDateFormat(searchStr)) {
-		lastModifieds.forEach((lastModified: string, idx: number) => {
-			const date = new Date(lastModified).toLocaleDateString('he-il');
+		createdAts.forEach((createdAt: string, idx: number) => {
+			const date = new Date(createdAt).toLocaleDateString('he-IL');
 			if (date === searchStr) {
 				if (notes[idx].password) {
-					console.log('This note is locked!');
+          logger.info('This note is locked!');
 					return;
 				}
-				printPrettyNote(idx, titles, texts, lastModifieds, 'lastModified', [lastModified]);
+				printPrettyNote(idx, titles, texts, createdAts, 'createdAt', [createdAt]);
 			}
 		});
 		return;
@@ -118,14 +113,8 @@ async function searchNotes() {
 		const regex = new RegExp(searchStr, 'i');
 		if (title.match(regex)) {
 			foundMatchInTitle = true;
-			if (notes[i].password) {
-				console.log('This note is locked!');
-				let isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
-				while (!isNoteUnlocked) {
-					isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
-				}
-			}
-			printPrettyNote(i, titles, texts, lastModifieds, 'title', title.match(regex) as string[]);
+			await unlockNoteWithRetry(notes[i] as Note);
+			printPrettyNote(i, titles, texts, createdAts, 'title', title.match(regex) as string[]);
 		}
 	}
 	let foundMatchInText = false;
@@ -135,14 +124,8 @@ async function searchNotes() {
 			const regex = new RegExp(searchStr, 'i');
 			if (text.match(regex)) {
 				foundMatchInText = true;
-				if (notes[i].password) {
-					console.log('This note is locked!');
-          let isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
-          while (!isNoteUnlocked) {
-            isNoteUnlocked = await retryUnlock([notes[i]] as Note[]);
-          }
-				}
-				printPrettyNote(i, titles, texts, lastModifieds, 'text', text.match(regex) as string[]);
+				await unlockNoteWithRetry(notes[i] as Note);
+				printPrettyNote(i, titles, texts, createdAts, 'text', text.match(regex) as string[]);
 			}
 		};
 	}
@@ -164,23 +147,32 @@ async function unlockNote() {
 	try {
 		const lockedNotes = await getLockedNotes();
 		const [noteToUnlock, isNoteUnlocked] = await unlockNotesPrompt(lockedNotes);
-		if (!isNoteUnlocked) return logger.error('incorrect password');
+		if (!isNoteUnlocked) return logger.error('Incorrect password');
 		await removeLockFromNote(noteToUnlock as Note);
-		logger.success('note unlocked successfully');
+		logger.success('Note unlocked successfully');
 		printNote(noteToUnlock as Note);
 	} catch (e) {
-		logger.error(`failed to unlock note: ${e}`);
+		logger.error(`Failed to unlock note: ${e}`);
 	}
 }
 
 async function shareNote() {
 	try {
 		const dateCreated = await shareNoteInquirer();
-		if (!dateCreated) return logger.error('incorrect password');
-		logger.success(`message sent successfully at ${dateCreated}`);
+		if (!dateCreated) return logger.error('Incorrect password');
+		logger.success(`Message sent successfully at ${dateCreated}`);
 	} catch (e) {
-		logger.error(`failed to share note: ${e}`);
+		logger.error(`Failed to share note: ${e}`);
 	}
+}
+
+async function editTags() {
+  try {
+    const res = await editTagsInquirer();
+    logger.success(`Note's tags edited successfully`);
+  } catch (e) {
+		logger.error(`Failed to edit note's tags: ${e}`);
+  }
 }
 
 (async () => {

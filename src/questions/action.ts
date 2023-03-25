@@ -7,6 +7,7 @@ export enum Actions {
     lock = "LOCK",
     unlock = "UNLOCK",
     share = "SHARE",
+    editTags = "EDIT_TAGS"
 }
 
 export const action = [
@@ -46,6 +47,10 @@ export const action = [
             {
                 name: "Share a note",
                 value: Actions.share,
+            },
+            {
+                name: "Edit a note's tags",
+                value: Actions.editTags,
             }
         ]
     }

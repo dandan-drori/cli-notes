@@ -7,6 +7,7 @@ import {noteInfo} from "./noteInfo";
 import {notePassword} from "./notePassword";
 import {passwordPrompt} from "./passwordPrompt";
 import {searchStr} from "./searchStr";
+import {noteToEditTags} from './noteToEditTags';
 
 export {
     noteToShare as noteToShareQuestion,
@@ -18,4 +19,5 @@ export {
     noteToLock as noteToLockQuestion,
     passwordPrompt as passwordPromptQuestion,
     searchStr as searchStrQuestion,
+    noteToEditTags as noteToEditTagsQuestion,
 };

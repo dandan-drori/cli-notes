@@ -1,25 +1,22 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { getDb } from './db';
+import { getNotesCollection } from './db';
 import { Note } from "../models/note";
 import { ObjectId } from "mongodb";
 import { hash, compare } from "bcryptjs";
 
 async function getAll() {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.find({}).toArray();
 }
 
 async function getNoteById(noteId: string) {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.findOne({ _id: new ObjectId(noteId) });
 }
 
 async function insertOne(note: Note) {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.insertOne(note);
 }
 
@@ -28,8 +25,7 @@ async function update(note: Note): Promise<Note> {
     _id: new ObjectId(note._id),
     ...note
   }
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave }) as never as Note;
 }
 
@@ -41,8 +37,7 @@ async function save(note: Note) {
 }
 
 async function remove(noteId: string) {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.findOneAndDelete({_id: new ObjectId(noteId)});
 }
 
@@ -58,8 +53,7 @@ async function unlockNote(note: Note, password: string) {
 }
 
 async function removeLockFromNote(note: Note) {
-  const db = await getDb();
-  const col = await db.collection(process.env.NOTES_COL_NAME as string);
+  const col = await getNotesCollection();
   return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} }) as never as Note;
 }
 

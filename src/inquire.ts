@@ -1,3 +1,4 @@
+import { Logger } from './utils/logger'
 import inquirer from "inquirer";
 import {Note} from "./models/note";
 import {ObjectId} from "mongodb";
@@ -12,8 +13,11 @@ import {
     noteInfoQuestion,
     notePasswordQuestion,
     searchStrQuestion,
+    noteToEditTagsQuestion,
     noteIdQuestion} from "./questions";
-import {retryUnlock} from "./index";
+import {retryUnlock} from "./utils/utils";
+
+const logger = new Logger();
 
 async function getNote(noteId: string): Promise<Note> {
     return await getNoteById(noteId) as never as Promise<Note>;
@@ -33,7 +37,8 @@ export async function getNoteInfo(): Promise<Note> {
     const {title, text} = await inquirer.prompt(noteInfoQuestion);
     const createdAt = new Date().toISOString();
     const lastModified = createdAt;
-    return {title, text, createdAt, lastModified};
+    const tags: string[] = [];
+    return {title, text, createdAt, lastModified, tags};
 }
 
 export async function getNoteId(): Promise<string> {
@@ -66,13 +71,14 @@ export async function getUpdatedNote(): Promise<Note> {
             default: noteStr
         },
     ]);
-    const [lastModified, createdAt, title, text] = updatedNoteStr.split('\n\n');
+    const [createdAt, title, text] = updatedNoteStr.split('\n\n');
     return {
         _id: noteId,
         title,
         text,	
         createdAt: new Date(convertDateStringToAmerican(createdAt).trim()).toISOString(),
         lastModified: new Date().toISOString(),
+        tags: noteToUpdate.tags,
     }
 }
 
@@ -108,4 +114,27 @@ export async function shareNote(): Promise<String> {
         return '';
     }
     return await shareNoteUtil(noteToShare);
+}
+
+export async function editTags(): Promise<void> {
+    const choices = await getNotesChoices();
+    const questions = [{...noteToEditTagsQuestion, choices}];
+    const {noteId} = await inquirer.prompt(questions);
+    const noteToEditTags = await getNote(noteId);
+    if (noteToEditTags.password) {
+        const {password} = await inquirer.prompt(notePasswordQuestion);
+        let isNoteUnlocked = await unlockNoteDb(noteToEditTags, password);
+        while (!isNoteUnlocked) {
+            logger.error('Incorrect password');
+            isNoteUnlocked = await unlockNoteDb(noteToEditTags, password);
+        }
+    }
+    return await chooseTagsAction();
+}
+
+async function chooseTagsAction() {
+    // const choices = await getTagsActionsChoices();
+    // const questions = [{...chooseTagsActionsQuestion, choices}];
+    // const {tagAction} = await inquirer.prompt(questions);
+    // tag actions: [add, remove, edit]
 }

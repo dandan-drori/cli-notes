@@ -7,4 +7,5 @@ export interface Note {
     text: string;
     createdAt: string;
     lastModified: string;
+    tags: string[],
 }
