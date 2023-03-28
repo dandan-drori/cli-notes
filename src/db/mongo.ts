@@ -5,9 +5,13 @@ import { Note } from "../models/note";
 import { ObjectId } from "mongodb";
 import { hash, compare } from "bcryptjs";
 
-async function getAll() {
+async function getAll(): Promise<Note[]> {
   const col = await getNotesCollection();
-  return col.find({}).toArray();
+  const result = await col.find({}).toArray();
+  if (result) {
+    return result as Note[];
+  }
+  throw new Error('Couldn\'t retrieve notes');
 }
 
 async function getNoteById(noteId: string) {
@@ -26,7 +30,11 @@ async function update(note: Note): Promise<Note> {
     ...note
   }
   const col = await getNotesCollection();
-  return col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave }) as never as Note;
+  const result = await col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave });
+  if (result.value) {
+    return result.value as Note;
+  }
+  throw new Error('Note not found');
 }
 
 async function save(note: Note) {
@@ -54,7 +62,7 @@ async function unlockNote(note: Note, password: string) {
 
 async function removeLockFromNote(note: Note) {
   const col = await getNotesCollection();
-  return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} }) as never as Note;
+  return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} });
 }
 
 export {

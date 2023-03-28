@@ -7,20 +7,22 @@ import {buildNoteStr, shareNote as shareNoteUtil, convertDateStringToAmerican} f
 import {
     noteToShareQuestion,
     noteToLockQuestion,
-    passwordPromptQuestion,
     noteToUpdateQuestion,
-    noteToUnlockQuestion,
     noteInfoQuestion,
     notePasswordQuestion,
     searchStrQuestion,
     noteToEditTagsQuestion,
     noteIdQuestion} from "./questions";
-import {retryUnlock} from "./utils/utils";
+import { retryUnlock } from './noteOperations';
 
 const logger = new Logger();
 
 async function getNote(noteId: string): Promise<Note> {
-    return await getNoteById(noteId) as never as Promise<Note>;
+    const note = await getNoteById(noteId);
+    if (note) {
+        return note as Note;
+    }
+    throw new Error('Note not found');
 }
 
 async function getNotesChoices(): Promise<Array<{name: string, value: ObjectId | string}>> {
@@ -89,17 +91,6 @@ export async function lockNote(): Promise<Note> {
     const noteToLock = await getNote(noteId);
     const {password} = await inquirer.prompt(notePasswordQuestion);
     return await lockNoteDb(noteToLock, password);
-}
-
-export async function unlockNotesPrompt(lockedNotes: Note[]): Promise<Array<Note | boolean>> {
-    const choices = lockedNotes.map(({title, _id}: Partial<Note>) => ({name: title as string, value: _id as ObjectId}));
-    const questions = [{...noteToUnlockQuestion, choices}];
-    const {noteId} = await inquirer.prompt(questions);
-    const noteToUnlock = lockedNotes.find((note: Note) => note._id === noteId);
-    if (!noteToUnlock) return [null as never as Note, false];
-    const {password} = await inquirer.prompt(notePasswordQuestion);
-    const isNoteUnlocked = await unlockNoteDb(noteToUnlock, password);
-    return [noteToUnlock, !!isNoteUnlocked];
 }
 
 export async function shareNote(): Promise<String> {
