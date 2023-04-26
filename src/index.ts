@@ -25,7 +25,8 @@ import { Logger } from './utils/logger';
 import { printNote, retryUnlock, unlockNotesPrompt } from './noteOperations';
 import { getTag, getNotesWithTag } from './tagOperations';
 import { Tag } from './models/tag';
-import { getAllTags } from './db/tags';
+import { getSettings, updateSettings } from './db/settings';
+import { getUpdatedSettings } from './settingsOperations';
 
 const logger = new Logger();
 
@@ -42,6 +43,7 @@ async function prompt() {
 		[Actions.unlock]: unlockNote,
 		[Actions.share]: shareNote,
 		[Actions.tags]: manageTags,
+		[Actions.settings]: editSettings,
 	};
 	await ActionsFunctions[answers.action as Actions]();
 }
@@ -50,7 +52,7 @@ async function listNotes() {
 	try {
 		const notes = await getAll();
 		if (notes.length) logger.info('\n  - - - - - 1 - - - - -');
-		const lockedNotes = printNoteList((notes as Note[]));
+		const lockedNotes = await printNoteList((notes as Note[]));
 		if (!lockedNotes.length) return;
 		let isNoteUnlocked = await retryUnlock(lockedNotes);
 		while (!isNoteUnlocked) {
@@ -111,7 +113,7 @@ async function filterNotesByTag(): Promise<void> {
 	const notes = await getAll();
 	const tag = await getTag();
 	const notesFilteredByTag = await getNotesByTag(notes, tag);
-	const lockedNotes = printNoteList(notesFilteredByTag);
+	const lockedNotes = await printNoteList(notesFilteredByTag);
 	for await (const note of lockedNotes) {
 		await unlockNoteWithRetry(note);
 	}
@@ -203,7 +205,20 @@ async function manageTags() {
 	}
 }
 
+async function editSettings() {
+	try {
+		const settings = await getSettings();
+		const updatedSettings = await getUpdatedSettings();
+		await updateSettings({ _id: settings._id, ...updatedSettings });
+		logger.success('Settings saved successfully');
+	} catch (e) {
+		logger.error(`Failed to edit settings: ${e}`)
+	}
+}
+
 (async () => {
-	await prompt();
-	process.exit(1);
+	while(true) {
+		await prompt();
+	}
+	// process.exit(1);
 })();

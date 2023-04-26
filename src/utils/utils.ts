@@ -6,7 +6,8 @@ import { getAll } from '../db/mongo';
 import clientInit from 'twilio';
 import { Logger } from './logger';
 import { buildDecoratedNoteStr, retryUnlock } from '../noteOperations';
-import { Tag } from '../models/tag';
+import { Settings } from '../models/settings';
+import { getSettings, setSettings } from '../db/settings';
 
 const logger = new Logger();
 
@@ -153,10 +154,10 @@ function printNote(note: Note, idx: number, notesLength: number, isLocked: boole
   - - - - - ${idx + 1 < notesLength ? idx + 2 : '-'} - - - - -${extraLine}`);
 }
 
-export function printNoteList(notes: Note[]): Note[] {
+export async function printNoteList(notes: Note[]): Promise<Note[]> {
 	const lockedNotes: Note[] = [];
-	// default sort is by createdAt, descending (newest first)
-	const sortedNotes = sortNotesBy(notes);
+	const { sortBy, sortDirection } = await getSettings();
+	const sortedNotes = sortNotesBy(notes, sortBy, sortDirection);
 
 	sortedNotes.forEach((note: Note, idx: number) => {
 		if (note.password) {
@@ -223,7 +224,7 @@ export function sortNotesBy(
 	return notes.sort((a: Note, b: Note) => {
 		let A = sortBy === 'createdAt' ? new Date(a[sortBy]) : a[sortBy];
 		let B = sortBy === 'createdAt' ? new Date(b[sortBy]) : b[sortBy];
-		return A > B ? 1 * factor : A < B ? -1 * factor : 0;
+		return A > B ? -1 * factor : A < B ? 1 * factor : 0;
 	});
 }
 
@@ -235,5 +236,12 @@ export async function unlockNoteWithRetry(note: Note) {
 			logger.error('Incorrect password');
 			isNoteUnlocked = await retryUnlock([note]);
 		}
+	}
+}
+
+export function getDefaultSettings(): Settings {
+	return {
+		sortBy: 'createdAt',
+		sortDirection: 'desc',
 	}
 }
