@@ -1,26 +1,24 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import { getNotesCollection } from './db';
+import { getCollection } from './db';
 import { Note } from "../models/note";
 import { ObjectId } from "mongodb";
 import { hash, compare } from "bcryptjs";
 
 async function getAll(): Promise<Note[]> {
-  const col = await getNotesCollection();
+  const col = await getCollection();
   const result = await col.find({}).toArray();
   if (result) {
     return result as Note[];
   }
-  throw new Error('Couldn\'t retrieve notes');
+  throw new Error('Failed to retrieve notes');
 }
 
 async function getNoteById(noteId: string) {
-  const col = await getNotesCollection();
+  const col = await getCollection();
   return col.findOne({ _id: new ObjectId(noteId) });
 }
 
 async function insertOne(note: Note) {
-  const col = await getNotesCollection();
+  const col = await getCollection();
   return col.insertOne(note);
 }
 
@@ -29,7 +27,7 @@ async function update(note: Note): Promise<Note> {
     _id: new ObjectId(note._id),
     ...note
   }
-  const col = await getNotesCollection();
+  const col = await getCollection();
   const result = await col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave });
   if (result.value) {
     return result.value as Note;
@@ -45,7 +43,7 @@ async function save(note: Note) {
 }
 
 async function remove(noteId: string) {
-  const col = await getNotesCollection();
+  const col = await getCollection();
   return col.findOneAndDelete({_id: new ObjectId(noteId)});
 }
 
@@ -61,7 +59,7 @@ async function unlockNote(note: Note, password: string) {
 }
 
 async function removeLockFromNote(note: Note) {
-  const col = await getNotesCollection();
+  const col = await getCollection();
   return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} });
 }
 

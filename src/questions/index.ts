@@ -1,23 +1,9 @@
-import {noteToShare} from "./noteToShare";
-import {noteToUpdate} from "./noteToUpdate";
-import {noteToLock} from "./noteToLock";
-import {noteToUnlock} from "./noteToUnlock";
-import {noteId} from "./noteId";
-import {noteInfo} from "./noteInfo";
-import {notePassword} from "./notePassword";
-import {passwordPrompt} from "./passwordPrompt";
-import {searchStr} from "./searchStr";
-import {noteToEditTags} from './noteToEditTags';
-
-export {
-    noteToShare as noteToShareQuestion,
-    notePassword as notePasswordQuestion,
-    noteToUnlock as noteToUnlockQuestion,
-    noteToUpdate as noteToUpdateQuestion,
-    noteInfo as noteInfoQuestion,
-    noteId as noteIdQuestion,
-    noteToLock as noteToLockQuestion,
-    passwordPrompt as passwordPromptQuestion,
-    searchStr as searchStrQuestion,
-    noteToEditTags as noteToEditTagsQuestion,
-};
+export {noteToShare as noteToShareQuestion} from "./noteToShare";
+export {noteToUpdate as noteToUpdateQuestion} from "./noteToUpdate";
+export {noteToLock as noteToLockQuestion} from "./noteToLock";
+export {noteToUnlock as noteToUnlockQuestion} from "./noteToUnlock";
+export {noteId as noteIdQuestion} from "./noteId";
+export {noteInfo as noteInfoQuestion} from "./noteInfo";
+export {notePassword as notePasswordQuestion} from "./notePassword";
+export {passwordPrompt as passwordPromptQuestion} from "./passwordPrompt";
+export {searchStr as searchStrQuestion} from "./searchStr";

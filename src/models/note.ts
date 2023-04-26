@@ -1,7 +1,7 @@
 import {ObjectId} from "mongodb";
 
 export interface Note {
-    _id?: ObjectId | undefined;
+    _id?: ObjectId;
     password?: string;
     title: string;
     text: string;

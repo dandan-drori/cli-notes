@@ -4,10 +4,11 @@ export enum Actions {
     remove = "DELETE",
     update = "UPDATE",
     search = "SEARCH",
+    filter = "FILTER",
     lock = "LOCK",
     unlock = "UNLOCK",
     share = "SHARE",
-    editTags = "EDIT_TAGS"
+    tags = "TAGS"
 }
 
 export const action = [
@@ -37,6 +38,10 @@ export const action = [
                 value: Actions.search,
             },
             {
+                name: "Filter notes by tag",
+                value: Actions.filter,
+            },
+            {
                 name: "Lock a note",
                 value: Actions.lock,
             },
@@ -49,8 +54,8 @@ export const action = [
                 value: Actions.share,
             },
             {
-                name: "Edit a note's tags",
-                value: Actions.editTags,
+                name: "Manage Tags",
+                value: Actions.tags,
             }
         ]
     }

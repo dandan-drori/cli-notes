@@ -6,6 +6,7 @@ import { getAll } from '../db/mongo';
 import clientInit from 'twilio';
 import { Logger } from './logger';
 import { buildDecoratedNoteStr, retryUnlock } from '../noteOperations';
+import { Tag } from '../models/tag';
 
 const logger = new Logger();
 
@@ -134,49 +135,35 @@ export function printPrettyNote(
 	);
 }
 
-function printLockedNote(note: Note, idx: number, notesLength: number) {
-	const { createdAt, title } = note;
-	const decoratedDate = decorateText(Colors.Dim, new Date(createdAt).toLocaleString('he-IL'));
-	const decoratedTitle = decorateText(Colors.Underscore + Colors.Bright, title);
-	const lockedWarning = decorateText(Colors.Red + Colors.Bright, 'This note is Locked!');
-
-	logger.info(`
-  ${decoratedDate}
-  
-  ${decoratedTitle}
-  
-  ${lockedWarning}
-  
-  - - - - - ${idx + 1 < notesLength ? idx + 2 : '-'} - - - - -`);
-}
-
-function printUnlockedNote(note: Note, idx: number, notesLength: number) {
+function printNote(note: Note, idx: number, notesLength: number, isLocked: boolean = false) {
 	const { createdAt, title, text } = note;
 	const decoratedDate = decorateText(Colors.Dim, new Date(createdAt).toLocaleString('he-IL'));
 	const decoratedTitle = decorateText(Colors.Underscore + Colors.Bright, title);
 	const textArr = text.split('\\n');
+	const lockedWarning = decorateText(Colors.Red + Colors.Bright, 'This note is Locked!');
+	const extraLine = idx + 1 === notesLength ? '\n' : '';
 
 	logger.info(`
   ${decoratedDate}
   
   ${decoratedTitle}
   
-  ${textArr.join('\n')}
+  ${isLocked ? lockedWarning : textArr.join('\n')}
   
-  - - - - - ${idx + 1 < notesLength ? idx + 2 : '-'} - - - - -`);
+  - - - - - ${idx + 1 < notesLength ? idx + 2 : '-'} - - - - -${extraLine}`);
 }
 
 export function printNoteList(notes: Note[]): Note[] {
 	const lockedNotes: Note[] = [];
-	const sortBy = 'createdAt';
-	const sortedNotes = sortNotesBy(notes, sortBy);
+	// default sort is by createdAt, descending (newest first)
+	const sortedNotes = sortNotesBy(notes);
 
 	sortedNotes.forEach((note: Note, idx: number) => {
 		if (note.password) {
 			lockedNotes.push(note);
-			printLockedNote(note, idx, notes.length);
+			printNote(note, idx, notes.length, true);
 		} else {
-			printUnlockedNote(note, idx, notes.length);
+			printNote(note, idx, notes.length);
 		}
 	});
 
@@ -185,7 +172,7 @@ export function printNoteList(notes: Note[]): Note[] {
 
 export async function getLockedNotes(): Promise<Note[]> {
 	const notes = await getAll();
-	return notes.filter(note => note.password) as Note[];
+	return notes.filter(note => note.password);
 }
 
 export async function shareNote(noteToShare: Note): Promise<String> {
@@ -227,9 +214,16 @@ export function decorateText(decor: string, text: string): string {
 	return `${decor}${text}${Colors.Reset}`;
 }
 
-export function sortNotesBy(notes: Note[], sortBy: 'createdAt' | 'title' | 'text'): Note[] {
+export function sortNotesBy(
+	notes: Note[],
+	sortBy: 'createdAt' | 'title' | 'text' = 'createdAt',
+	direction: 'asc' | 'desc' = 'desc'
+): Note[] {
+	const factor = direction === 'desc' ? 1 : -1;
 	return notes.sort((a: Note, b: Note) => {
-		return a[sortBy] > b[sortBy] ? 1 : a[sortBy] < b[sortBy] ? -1 : 0;
+		let A = sortBy === 'createdAt' ? new Date(a[sortBy]) : a[sortBy];
+		let B = sortBy === 'createdAt' ? new Date(b[sortBy]) : b[sortBy];
+		return A > B ? 1 * factor : A < B ? -1 * factor : 0;
 	});
 }
 

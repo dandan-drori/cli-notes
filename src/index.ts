@@ -19,10 +19,13 @@ import {
 	getUpdatedNote,
 	lockNote as lockNoteInquirer,
 	shareNote as shareNoteInquirer,
-	editTags as editTagsInquirer,
+	manageTags as manageTagsInquirer,
 } from './inquire';
 import { Logger } from './utils/logger';
 import { printNote, retryUnlock, unlockNotesPrompt } from './noteOperations';
+import { getTag, getNotesWithTag } from './tagOperations';
+import { Tag } from './models/tag';
+import { getAllTags } from './db/tags';
 
 const logger = new Logger();
 
@@ -34,10 +37,11 @@ async function prompt() {
 		[Actions.remove]: removeNote,
 		[Actions.update]: updateNote,
 		[Actions.search]: searchNotes,
+		[Actions.filter]: filterNotesByTag,
 		[Actions.lock]: lockNote,
 		[Actions.unlock]: unlockNote,
 		[Actions.share]: shareNote,
-		[Actions.editTags]: editTags,
+		[Actions.tags]: manageTags,
 	};
 	await ActionsFunctions[answers.action as Actions]();
 }
@@ -45,8 +49,8 @@ async function prompt() {
 async function listNotes() {
 	try {
 		const notes = await getAll();
-		if (notes.length) logger.info('- - - - - 1 - - - - -');
-		const lockedNotes = printNoteList((notes as Note[]).reverse());
+		if (notes.length) logger.info('\n  - - - - - 1 - - - - -');
+		const lockedNotes = printNoteList((notes as Note[]));
 		if (!lockedNotes.length) return;
 		let isNoteUnlocked = await retryUnlock(lockedNotes);
 		while (!isNoteUnlocked) {
@@ -103,6 +107,16 @@ async function searchNotes() {
 	}
 }
 
+async function filterNotesByTag(): Promise<void> {
+	const notes = await getAll();
+	const tag = await getTag();
+	const notesFilteredByTag = await getNotesByTag(notes, tag);
+	const lockedNotes = printNoteList(notesFilteredByTag);
+	for await (const note of lockedNotes) {
+		await unlockNoteWithRetry(note);
+	}
+}
+
 function searchNotesByDate(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string) {
 	createdAts.forEach((createdAt: string, idx: number) => {
 		const date = new Date(createdAt).toLocaleDateString('he-IL');
@@ -145,6 +159,10 @@ async function searchNotesByText(notes: Note[], titles: string[], texts: string[
 	}
 }
 
+async function getNotesByTag(notes: Note[], tag: Tag): Promise<Note[]> {
+	return await getNotesWithTag(notes, tag);
+}
+
 async function lockNote() {
 	try {
 		await lockNoteInquirer();
@@ -177,10 +195,9 @@ async function shareNote() {
 	}
 }
 
-async function editTags() {
+async function manageTags() {
 	try {
-		const res = await editTagsInquirer();
-		logger.success(`Note's tags edited successfully`);
+		await manageTagsInquirer();
 	} catch (e) {
 		logger.error(`Failed to edit note's tags: ${e}`);
 	}
