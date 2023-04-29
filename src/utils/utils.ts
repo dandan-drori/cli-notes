@@ -7,7 +7,8 @@ import clientInit from 'twilio';
 import { Logger } from './logger';
 import { buildDecoratedNoteStr, retryUnlock } from '../noteOperations';
 import { Settings } from '../models/settings';
-import { getSettings, setSettings } from '../db/settings';
+import { getSettings } from '../db/settings';
+import { ColorNames } from '../colors/colorTypes';
 
 const logger = new Logger();
 
@@ -82,18 +83,21 @@ export function getIndicesOf(
 function highlightMatches(
 	note: Note,
 	field: 'title' | 'text' | 'createdAt',
-	matches: string[]
+	matches: string[],
+	highlightColor: ColorNames
 ): Note {
 	const match = matches[0];
 	const indices = getIndicesOf(match, note[field]);
-	const colorsLength = Colors.Bright.length + Colors.Red.length + Colors.Reset.length;
+	const highlightColorCode = getColorCodeFromColorName(highlightColor);
+	const colorsLength = Colors.Bright.length + highlightColorCode.length + Colors.Reset.length;
+	const reset = field === 'title' ? `${Colors.Reset}${Colors.Underscore}` : Colors.Reset;
 
 	indices.forEach((startIdx: number, idx: number) => {
 		startIdx = startIdx + colorsLength * idx;
 		const endIdx = startIdx + match.length;
-		note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${Colors.Red}${note[
+		note[field] = `${note[field].slice(0, startIdx)}${Colors.Bright}${highlightColorCode}${note[
 			field
-		].slice(startIdx, endIdx)}${Colors.Reset}${note[field].slice(endIdx)}`;
+		].slice(startIdx, endIdx)}${reset}${note[field].slice(endIdx)}`;
 	});
 
 	return note;
@@ -120,12 +124,13 @@ export function printPrettyNote(
 	texts: string[],
 	createdAts: string[],
 	field: 'title' | 'text' | 'createdAt',
-	matches: string[]
+	matches: string[],
+	highlightColor: ColorNames
 ) {
 	let note = createNoteObject(idx, titles, texts, createdAts);
 
 	if (field !== 'createdAt') {
-		note = highlightMatches(note, field, matches);
+		note = highlightMatches(note, field, matches, highlightColor);
 	}
 
 	logger.info(
@@ -136,7 +141,12 @@ export function printPrettyNote(
 	);
 }
 
-function printNote(note: Note, idx: number, notesLength: number, isLocked: boolean = false) {
+function printNote(
+	note: Note,
+	idx: number,
+	notesLength: number,
+	isLocked: boolean = false,
+) {
 	const { createdAt, title, text } = note;
 	const decoratedDate = decorateText(Colors.Dim, new Date(createdAt).toLocaleString('he-IL'));
 	const decoratedTitle = decorateText(Colors.Underscore + Colors.Bright, title);
@@ -164,7 +174,7 @@ export async function printNoteList(notes: Note[]): Promise<Note[]> {
 			lockedNotes.push(note);
 			printNote(note, idx, notes.length, true);
 		} else {
-			printNote(note, idx, notes.length);
+			printNote(note, idx, notes.length, false);
 		}
 	});
 
@@ -243,5 +253,17 @@ export function getDefaultSettings(): Settings {
 	return {
 		sortBy: 'createdAt',
 		sortDirection: 'desc',
-	}
+		searchHighlightColor: 'red',
+	};
+}
+
+export function getColorCodeFromColorName(colorName: ColorNames): string {
+	const colorNamesToColorCodes = {
+		red: Colors.Red,
+		blue: Colors.Blue,
+		green: Colors.Green,
+		yellow: Colors.Yellow,
+		pink: Colors.Magenta,
+	};
+	return colorNamesToColorCodes[colorName];
 }

@@ -4,13 +4,13 @@ import inquirer from "inquirer";
 import { settingsQuestion, settingValueQuestion } from "./questions/settings";
 
 export async function getUpdatedSettings(): Promise<Settings> {
-    // add loop with option to quit?
+    // TODO: add loop with option to quit?
     const settings = await getSettings();
     const choices = await getSettingsProperties(settings);
     const { settingName } = await inquirer.prompt([{...settingsQuestion, choices}]);
     const settingValuesChoices = getSettingValueOptionsByPropertyName(settingName);
     const { settingValue } = await inquirer.prompt([{...settingValueQuestion, choices: settingValuesChoices}]);
-    // settings[settingName as keyof Settings] = settingValue;
+    (settings as any)[settingName] = settingValue;
     return settings;
 }
 
@@ -22,7 +22,8 @@ function getSettingValueOptionsByPropertyName(settingName: Partial<keyof Setting
     const settingsValueOptions = {
         _id: [''],
         sortBy: ['createdAt', 'title', 'text'],
-        sortDirection: ['asc', 'desc']
+        sortDirection: ['asc', 'desc'],
+        searchHighlightColor: ['red', 'blue', 'yellow', 'green', 'pink'],
     };
     return settingsValueOptions[settingName];
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env ts-node
 
 import inquirer from 'inquirer';
+import { ColorNames } from './colors/colorTypes'
 import { getAll, remove, removeLockFromNote, save } from './db/mongo';
 import { Note } from './models/note';
 import { action, Actions } from './questions/action';
@@ -98,13 +99,14 @@ async function searchNotes() {
 	const notes = await getAll();
 	const { titles, texts, createdAts } = getFieldsData(notes as Note[]);
 	const searchStr = await getSearchStr();
+	const { searchHighlightColor } = await getSettings();
 
 	if (isDateFormat(searchStr)) {
-		searchNotesByDate(notes, titles, texts, createdAts, searchStr);
+		searchNotesByDate(notes, titles, texts, createdAts, searchStr, searchHighlightColor);
 	} else {
-		const foundMatchInTitle = await searchNotesByTitle(notes, titles, texts, createdAts, searchStr);
+		const foundMatchInTitle = await searchNotesByTitle(notes, titles, texts, createdAts, searchStr, searchHighlightColor);
 		if (!foundMatchInTitle) {
-			await searchNotesByText(notes, titles, texts, createdAts, searchStr);
+			await searchNotesByText(notes, titles, texts, createdAts, searchStr, searchHighlightColor);
 		}
 	}
 }
@@ -119,7 +121,7 @@ async function filterNotesByTag(): Promise<void> {
 	}
 }
 
-function searchNotesByDate(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string) {
+function searchNotesByDate(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string, highlightColor: ColorNames) {
 	createdAts.forEach((createdAt: string, idx: number) => {
 		const date = new Date(createdAt).toLocaleDateString('he-IL');
 		if (date === searchStr) {
@@ -127,12 +129,12 @@ function searchNotesByDate(notes: Note[], titles: string[], texts: string[], cre
 				logger.info('This note is locked!');
 				return;
 			}
-			printPrettyNote(idx, titles, texts, createdAts, 'createdAt', [createdAt]);
+			printPrettyNote(idx, titles, texts, createdAts, 'createdAt', [createdAt], highlightColor);
 		}
 	});
 }
 
-async function searchNotesByTitle(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string): Promise<boolean> {
+async function searchNotesByTitle(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string, highlightColor: ColorNames): Promise<boolean> {
 	let foundMatch = false;
 	for (let i = 0; i < titles.length; ++i) {
 		const title = titles[i];
@@ -142,13 +144,13 @@ async function searchNotesByTitle(notes: Note[], titles: string[], texts: string
 			if (notes[i]) {
 				await unlockNoteWithRetry(notes[i]);
 			}
-			printPrettyNote(i, titles, texts, createdAts, 'title', title.match(regex) as string[]);
+			printPrettyNote(i, titles, texts, createdAts, 'title', title.match(regex) as string[], highlightColor);
 		}
 	}
 	return foundMatch;
 }
 
-async function searchNotesByText(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string): Promise<void> {
+async function searchNotesByText(notes: Note[], titles: string[], texts: string[], createdAts: string[], searchStr: string, highlightColor: ColorNames): Promise<void> {
 	for (let i = 0; i < texts.length; ++i) {
 		const text = texts[i];
 		const regex = new RegExp(searchStr, 'i');
@@ -156,7 +158,7 @@ async function searchNotesByText(notes: Note[], titles: string[], texts: string[
 			if (notes[i]) {
 				await unlockNoteWithRetry(notes[i]);
 			}
-			printPrettyNote(i, titles, texts, createdAts, 'text', text.match(regex) as string[]);
+			printPrettyNote(i, titles, texts, createdAts, 'text', text.match(regex) as string[], highlightColor);
 		}
 	}
 }
