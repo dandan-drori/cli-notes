@@ -1,4 +1,4 @@
-import type { ObjectId } from "mongodb";
+import type {ObjectId} from "mongodb";
 
 export interface Note {
     _id?: ObjectId;
@@ -7,6 +7,5 @@ export interface Note {
     text: string;
     createdAt: string;
     lastModified: string;
-    tags: string[];
-    deletedAt?: number;
+    tags: string[],
 }

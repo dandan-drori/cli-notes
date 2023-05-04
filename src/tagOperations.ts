@@ -3,7 +3,7 @@ import { Logger } from './utils/logger';
 import { getAllTags, saveTag, removeTag as removeTagDb, getTagById, getTagByName as getTagByNameDb } from "./db/tags";
 import { Tag } from './models/tag';
 import { tagIdQuestion, tagNameQuestion } from './questions/tags';
-import { ObjectId } from 'mongodb';
+import type { ObjectId } from 'mongodb';
 import { Note } from './models/note';
 
 const logger = new Logger();

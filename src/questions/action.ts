@@ -9,7 +9,8 @@ export enum Actions {
     unlock = "UNLOCK",
     share = "SHARE",
     tags = "TAGS",
-    settings = "SETTINGS"
+    settings = "SETTINGS",
+    trash = "TRASH",
 }
 
 export const action = [
@@ -61,7 +62,11 @@ export const action = [
             {
                 name: "Update Settings",
                 value: Actions.settings,
-            }
+            },
+            {
+                name: "Manage Trash",
+                value: Actions.trash,
+            },
         ]
     }
 ]

@@ -2,7 +2,7 @@
 
 import inquirer from 'inquirer';
 import { ColorNames } from './colors/colorTypes'
-import { getAll, remove, removeLockFromNote, save } from './db/mongo';
+import { getAll, removeLockFromNote, save } from './db/mongo';
 import { Note } from './models/note';
 import { action, Actions } from './questions/action';
 import {
@@ -14,13 +14,14 @@ import {
 	unlockNoteWithRetry,
 } from './utils/utils';
 import {
-	getNoteId,
 	getNoteInfo,
 	getSearchStr,
 	getUpdatedNote,
 	lockNote as lockNoteInquirer,
 	shareNote as shareNoteInquirer,
 	manageTags as manageTagsInquirer,
+	moveNoteToTrash as moveNoteToTrashInquirer,
+	manageTrash as manageTrashInquirer,
 } from './inquire';
 import { Logger } from './utils/logger';
 import { printNote, retryUnlock, unlockNotesPrompt } from './noteOperations';
@@ -36,7 +37,7 @@ async function prompt() {
 	const ActionsFunctions = {
 		[Actions.list]: listNotes,
 		[Actions.create]: createNote,
-		[Actions.remove]: removeNote,
+		[Actions.remove]: moveNoteToTrash,
 		[Actions.update]: updateNote,
 		[Actions.search]: searchNotes,
 		[Actions.filter]: filterNotesByTag,
@@ -45,6 +46,7 @@ async function prompt() {
 		[Actions.share]: shareNote,
 		[Actions.tags]: manageTags,
 		[Actions.settings]: editSettings,
+		[Actions.trash]: manageTrash,
 	};
 	await ActionsFunctions[answers.action as Actions]();
 }
@@ -52,7 +54,13 @@ async function prompt() {
 async function listNotes() {
 	try {
 		const notes = await getAll();
-		if (notes.length) logger.info('\n  - - - - - 1 - - - - -');
+		if (!notes.length) {
+            logger.info(`- - - - - - - - - - -
+  No notes to show
+- - - - - - - - - - -`);
+            return;
+        }
+		logger.info('\n  - - - - - 1 - - - - -');
 		const lockedNotes = await printNoteList((notes as Note[]));
 		if (!lockedNotes.length) return;
 		let isNoteUnlocked = await retryUnlock(lockedNotes);
@@ -72,16 +80,6 @@ async function createNote() {
 		logger.success('note created successfully');
 	} catch (e) {
 		logger.error(`failed to create note: ${e}`);
-	}
-}
-
-async function removeNote() {
-	try {
-		const id = await getNoteId();
-		await remove(id);
-		logger.success('note deleted successfully');
-	} catch (e) {
-		logger.error(`failed to delete note: ${e}`);
 	}
 }
 
@@ -169,7 +167,8 @@ async function getNotesByTag(notes: Note[], tag: Tag): Promise<Note[]> {
 
 async function lockNote() {
 	try {
-		await lockNoteInquirer();
+		const { mainPassword } = await getSettings();
+		await lockNoteInquirer(mainPassword);
 		logger.success('note locked successfully');
 	} catch (e) {
 		logger.error(`failed to lock note: ${e}`);
@@ -178,8 +177,9 @@ async function lockNote() {
 
 async function unlockNote() {
 	try {
+		const { mainPassword } = await getSettings();
 		const lockedNotes = await getLockedNotes();
-		const { noteToUnlock, isNoteUnlocked } = await unlockNotesPrompt(lockedNotes);
+		const { noteToUnlock, isNoteUnlocked } = await unlockNotesPrompt(lockedNotes, mainPassword);
 		if (!isNoteUnlocked) return logger.error('Incorrect password');
 		await removeLockFromNote(noteToUnlock as Note);
 		logger.success('Note unlocked successfully');
@@ -211,10 +211,27 @@ async function editSettings() {
 	try {
 		const settings = await getSettings();
 		const updatedSettings = await getUpdatedSettings();
-		await updateSettings({ _id: settings._id, ...updatedSettings });
+		await updateSettings({ _id: settings._id, ...updatedSettings });		
 		logger.success('Settings saved successfully');
 	} catch (e) {
 		logger.error(`Failed to edit settings: ${e}`)
+	}
+}
+
+async function manageTrash() {
+	try {
+		await manageTrashInquirer();
+	} catch (e) {
+		logger.error(`Failed to manage trash: ${e}`);
+	}
+}
+
+async function moveNoteToTrash() {
+	try {
+		await moveNoteToTrashInquirer();
+		logger.success('Note deleted successfully');
+	} catch (e) {
+		logger.error(`Failed to delete note: ${e}`);
 	}
 }
 

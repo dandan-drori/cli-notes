@@ -166,7 +166,7 @@ function printNote(
 
 export async function printNoteList(notes: Note[]): Promise<Note[]> {
 	const lockedNotes: Note[] = [];
-	const { sortBy, sortDirection } = await getSettings();
+	const { sortBy, sortDirection, mainPassword } = await getSettings();
 	const sortedNotes = sortNotesBy(notes, sortBy, sortDirection);
 
 	sortedNotes.forEach((note: Note, idx: number) => {
@@ -239,6 +239,7 @@ export function sortNotesBy(
 }
 
 export async function unlockNoteWithRetry(note: Note) {
+	const { mainPassword } = await getSettings();
 	if (note.password) {
 		logger.info('This note is locked!');
 		let isNoteUnlocked = await retryUnlock([note]);
@@ -254,6 +255,7 @@ export function getDefaultSettings(): Settings {
 		sortBy: 'createdAt',
 		sortDirection: 'desc',
 		searchHighlightColor: 'red',
+		mainPassword: '',
 	};
 }
 

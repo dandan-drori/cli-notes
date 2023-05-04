@@ -1,5 +1,5 @@
 import { Note } from './note'
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 
 export interface Tag {
     _id?: ObjectId;

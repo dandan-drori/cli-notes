@@ -1,30 +1,31 @@
 import inquirer from 'inquirer'
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 import { Note } from "./models/note";
-import { unlockNote as unlockNoteDb } from "./db/mongo";
+import { isPasswordMatch, unlockNote as unlockNoteDb } from "./db/mongo";
 import { noteToUnlockQuestion, notePasswordQuestion} from "./questions";
 import { Logger } from './utils/logger';
 import { Colors } from './colors';
+import { getSettings } from './db/settings';
 
 const logger = new Logger();
 
 export async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
-	const {noteToUnlock, isNoteUnlocked} = await unlockNotesPrompt(lockedNotes);
+    const { mainPassword } = await getSettings();
+	const { noteToUnlock, isNoteUnlocked } = await unlockNotesPrompt(lockedNotes, mainPassword);
 	if (isNoteUnlocked) {
 		printNote(noteToUnlock);
-		return true;
 	}
-	return false;
+    return isNoteUnlocked;
 }
 
-export async function unlockNotesPrompt(lockedNotes: Note[]): Promise<{noteToUnlock: Note; isNoteUnlocked: boolean}> {
+export async function unlockNotesPrompt(lockedNotes: Note[], mainPassword: string): Promise<{noteToUnlock: Note; isNoteUnlocked: boolean}> {
     const choices = lockedNotes.map(({title, _id}: Partial<Note>) => ({name: title as string, value: _id as ObjectId}));
     const questions = [{...noteToUnlockQuestion, choices}];
     const {noteId} = await inquirer.prompt(questions);
     const noteToUnlock = lockedNotes.find((note: Note) => note._id === noteId);
     if (!noteToUnlock) return { noteToUnlock: lockedNotes[0], isNoteUnlocked: false };
-    const {password} = await inquirer.prompt(notePasswordQuestion);
-    const isNoteUnlocked = await unlockNoteDb(noteToUnlock, password);
+    const { password } = await inquirer.prompt(notePasswordQuestion);
+    const isNoteUnlocked = mainPassword ? await isPasswordMatch(password, mainPassword) : await unlockNoteDb(noteToUnlock, password);
     return { noteToUnlock, isNoteUnlocked: !!isNoteUnlocked };
 }
 

@@ -1,10 +1,10 @@
 import { ObjectId } from "mongodb";
-import { getCollection } from "./db";
+import { DbClient } from "./db";
 import { Settings } from "../models/settings";
 import { getDefaultSettings } from "../utils/utils";
 
 export async function getSettings(): Promise<Settings> {
-    const col = await getCollection('settings');
+	const col = await DbClient.getCollection('settings');
 	const settings = await col.findOne({});
 	if (settings) {
 		return settings as Settings;
@@ -13,7 +13,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function updateSettings(settings: Settings) {
-    const col = await getCollection('settings');
+	const col = await DbClient.getCollection('settings');
 	const settingsToSave = {
 		_id: new ObjectId(settings._id),
 		...settings
@@ -26,6 +26,6 @@ export async function updateSettings(settings: Settings) {
 }
 
 export async function setSettings() {
-	const col = await getCollection('settings');
+	const col = await DbClient.getCollection('settings');
 	await col.insertOne({sortBy: 'createdAt', sortDirection: 'desc'});
 }
