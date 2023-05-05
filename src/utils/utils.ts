@@ -238,14 +238,13 @@ export function sortNotesBy(
 	});
 }
 
-export async function unlockNoteWithRetry(note: Note) {
-	const { mainPassword } = await getSettings();
+export async function unlockNoteWithRetry(note: Note, skipPrintNote = false) {
 	if (note.password) {
 		logger.info('This note is locked!');
-		let isNoteUnlocked = await retryUnlock([note]);
+		let isNoteUnlocked = await retryUnlock([note], skipPrintNote);
 		while (!isNoteUnlocked) {
 			logger.error('Incorrect password');
-			isNoteUnlocked = await retryUnlock([note]);
+			isNoteUnlocked = await retryUnlock([note], skipPrintNote);
 		}
 	}
 }

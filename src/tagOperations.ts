@@ -8,22 +8,22 @@ import { Note } from './models/note';
 
 const logger = new Logger();
 
-export async function listTags(): Promise<void> {
+export async function listTags(): Promise<boolean> {
     const tags = await getAllTags();
     const tagsNames = tags.map(({text}: Tag) => `#${text}`);
     logger.info(`\n${tagsNames.join(', ')}\n`);
+    return false;
 }
 
-export async function addTag(): Promise<Tag> {
-    const tag = await getNewTag();
+export async function addTag(): Promise<boolean> {
     try {
+        const tag = await getNewTag();
         await saveTag(tag);
         logger.success('New tag created successfully');
     } catch (err) {
         logger.error(`Failed to create new tag | ${err}`);
     }
-    
-    return tag;
+    return false;
 }
 
 async function getNewTag(): Promise<Tag> {
@@ -36,30 +36,32 @@ async function getNewTag(): Promise<Tag> {
     };
 }
 
-export async function removeTag() {
-    const choices = await getTagsChoices();
-    const { tagId } = await inquirer.prompt([{...tagIdQuestion, choices}]);
+export async function removeTag(): Promise<boolean> {
     try {
+        const choices = await getTagsChoices();
+        const { tagId } = await inquirer.prompt([{...tagIdQuestion, choices}]);
         await removeTagDb(tagId.toString());
         logger.success('Tag deleted successfully');
     } catch(err) {
         logger.error(`Failed to delete tag | ${err}`);
     }
+    return false;
 }
 
-export async function editTag() {
-    const choices = await getTagsChoices();
-    const message = 'Which tag would you like to update?';
-    const { tagId } = await inquirer.prompt([{...tagIdQuestion, message, choices}]);
-    const nameMessage = "New tag's name?";
-    const { tagName } = await inquirer.prompt([{...tagNameQuestion, message: nameMessage, choices}]);
+export async function editTag(): Promise<boolean> {
     try {
+        const choices = await getTagsChoices();
+        const message = 'Which tag would you like to update?';
+        const { tagId } = await inquirer.prompt([{...tagIdQuestion, message, choices}]);
+        const nameMessage = "New tag's name?";
+        const { tagName } = await inquirer.prompt([{...tagNameQuestion, message: nameMessage, choices}]);
         const tag = await getTagById(tagId.toString());
         await saveTag({ ...tag, text: tagName });
         logger.success('Tag updated successfully');
     } catch(err) {
         logger.error(`Failed to update tag | ${err}`);
     }
+    return false;
 }
 
 export async function getTagsChoices(): Promise<Array<{name: string, value: ObjectId | string}>> {
@@ -86,8 +88,6 @@ export async function getTagByName(tagName: string): Promise<Tag> {
 export async function getNotesWithTag(notes: Note[], tag: Tag): Promise<Note[]> {
     const newTagId = (tag._id as object).toString();
 	return notes.filter((note: Note) => {
-        return note.tags.find((tagId: string) => {
-            return (tagId as string).toString() === newTagId;
-		})
+        return note.tags.find((tagId: string) => tagId.toString() === newTagId);
 	});
 }

@@ -141,7 +141,7 @@ async function searchNotesByTitle(notes: Note[], titles: string[], texts: string
 		if (title.match(regex)) {
 			foundMatch = true;
 			if (notes[i]) {
-				await unlockNoteWithRetry(notes[i]);
+				await unlockNoteWithRetry(notes[i], true);
 			}
 			printPrettyNote(i, titles, texts, createdAts, 'title', title.match(regex) as string[], highlightColor);
 		}
@@ -202,7 +202,12 @@ async function shareNote() {
 
 async function manageTags() {
 	try {
-		await manageTagsInquirer();
+		const shouldPromptMainMenu = await manageTagsInquirer();
+		if (shouldPromptMainMenu) {
+			while(true) {
+				await prompt();
+			}
+		}
 	} catch (e) {
 		logger.error(`Failed to edit note's tags: ${e}`);
 	}
@@ -219,20 +224,25 @@ async function editSettings() {
 	}
 }
 
-async function manageTrash() {
-	try {
-		await manageTrashInquirer();
-	} catch (e) {
-		logger.error(`Failed to manage trash: ${e}`);
-	}
-}
-
 async function moveNoteToTrash() {
 	try {
 		await moveNoteToTrashInquirer();
 		logger.success('Note deleted successfully');
 	} catch (e) {
 		logger.error(`Failed to delete note: ${e}`);
+	}
+}
+
+async function manageTrash() {
+	try {
+		const shouldPromptMainMenu = await manageTrashInquirer();
+		if (shouldPromptMainMenu) {
+			while(true) {
+				await prompt();
+			}
+		}
+	} catch (e) {
+		logger.error(`Failed to manage trash: ${e}`);
 	}
 }
 

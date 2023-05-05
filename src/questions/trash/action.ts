@@ -2,7 +2,8 @@ export enum TrashActions {
     list = "LIST",
     delete = "DELETE",
     restore = "RESTORE",
-    empty = "EMPTY"
+    empty = "EMPTY",
+    back = "BACK"
 }
 
 export const trashActionQuestion = [
@@ -26,6 +27,10 @@ export const trashActionQuestion = [
             {
                 name: "Empty trash",
                 value: TrashActions.empty,
+            },
+            {
+                name: "Back",
+                value: TrashActions.back,
             },
         ]
     }

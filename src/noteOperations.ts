@@ -9,10 +9,10 @@ import { getSettings } from './db/settings';
 
 const logger = new Logger();
 
-export async function retryUnlock(lockedNotes: Note[]): Promise<boolean> {
+export async function retryUnlock(lockedNotes: Note[], skipPrintNote = false): Promise<boolean> {
     const { mainPassword } = await getSettings();
 	const { noteToUnlock, isNoteUnlocked } = await unlockNotesPrompt(lockedNotes, mainPassword);
-	if (isNoteUnlocked) {
+	if (isNoteUnlocked && !skipPrintNote) {
 		printNote(noteToUnlock);
 	}
     return isNoteUnlocked;

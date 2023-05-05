@@ -4,6 +4,7 @@ export enum TagActions {
     edit = "EDIT",
     remove = "DELETE",
     apply = "APPLY",
+    back = "BACK",
 }
 
 export const tagActionQuestion = [
@@ -31,6 +32,10 @@ export const tagActionQuestion = [
             {
                 name: "Apply a tag to a note",
                 value: TagActions.apply,
+            },
+            {
+                name: "Back",
+                value: TagActions.back,
             },
         ]
     }

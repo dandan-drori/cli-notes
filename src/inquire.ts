@@ -117,7 +117,7 @@ export async function shareNote(): Promise<String> {
     return await shareNoteUtil(noteToShare);
 }
 
-export async function manageTags(): Promise<void> {
+export async function manageTags(): Promise<boolean> {
     const { tagAction } = await inquirer.prompt(tagActionQuestion);
     const tagActionFunctions = {
         [TagActions.list]: listTags,
@@ -125,11 +125,12 @@ export async function manageTags(): Promise<void> {
         [TagActions.remove]: removeTag,
         [TagActions.edit]: editTag,
         [TagActions.apply]: applyTagsToNote,
+        [TagActions.back]: async () => true,
     }
-    await tagActionFunctions[tagAction as TagActions]();
+    return await tagActionFunctions[tagAction as TagActions]();
 }
 
-async function applyTagsToNote(): Promise<void> {
+async function applyTagsToNote(): Promise<boolean> {
     try {
         const noteToEditTags = await getUnlockedNote();
         const tagId = await getChosenTagId();
@@ -139,6 +140,7 @@ async function applyTagsToNote(): Promise<void> {
     } catch(err) {
         logger.error(`Failed to add tag to note | ${err}`);
     }
+    return false;
 }
 
 async function getUnlockedNote(): Promise<Note> {
@@ -165,15 +167,16 @@ async function getChosenTagId(): Promise<string> {
     return tagId.toString();
 }
 
-export async function manageTrash(): Promise<void> {
+export async function manageTrash(): Promise<boolean> {
     const { trashAction } = await inquirer.prompt(trashActionQuestion);
     const trashActionFunctions = {
         [TrashActions.list]: listNotesInTrash,
         [TrashActions.delete]: removeNoteFromTrash,
         [TrashActions.restore]: restoreNoteFromTrash,
         [TrashActions.empty]: emptyTrash,
+        [TrashActions.back]: async () => true,
     }
-    await trashActionFunctions[trashAction as TrashActions]();
+    return await trashActionFunctions[trashAction as TrashActions]();
 }
 
 export async function moveNoteToTrash(): Promise<Note> {
@@ -186,16 +189,16 @@ export async function moveNoteToTrash(): Promise<Note> {
     return await moveNoteToTrashDb(note);
 }
 
-async function listNotesInTrash(): Promise<void> {
+async function listNotesInTrash(): Promise<boolean> {
 	try {
 		const notes = await getNotesInTrashDb();
         if (!notes.length) {
             logger.info('\nThe trash is empty\n');
-            return;
+            return false;
         }
 		logger.info('\n  - - - - - 1 - - - - -');
 		const lockedNotes = await printNoteList((notes as Note[]));
-		if (!lockedNotes.length) return;
+		if (!lockedNotes.length) return false;
 		let isNoteUnlocked = await retryUnlock(lockedNotes);
 		while (!isNoteUnlocked) {
 			logger.error('Incorrect password');
@@ -204,14 +207,15 @@ async function listNotesInTrash(): Promise<void> {
 	} catch (e) {
 		logger.error(`Failed to fetch notes: ${e}`);
 	}
+    return false;
 }
 
-async function restoreNoteFromTrash(): Promise<void> {
+async function restoreNoteFromTrash(): Promise<boolean> {
     try {
         const choices = await getNotesChoices(true);
         if (!choices.length) {
             logger.info('\nThe trash is empty\n');
-            return;
+            return false;
         }
         const message = 'Which note would you like restore?';
         const { noteId } = await inquirer.prompt([{...noteIdQuestion, message, choices}]);
@@ -222,9 +226,10 @@ async function restoreNoteFromTrash(): Promise<void> {
     } catch (e) {
 		logger.error(`Failed to restore note: ${e}`);
     }
+    return false;
 }
 
-async function removeNoteFromTrash() {
+async function removeNoteFromTrash(): Promise<boolean> {
 	try {
 		const id = await getNoteId();
 		const note = await getNoteById(id, true);
@@ -234,13 +239,15 @@ async function removeNoteFromTrash() {
 	} catch (e) {
 		logger.error(`Failed to delete note: ${e}`);
 	}
+    return false;
 }
 
-async function emptyTrash() {
+async function emptyTrash(): Promise<boolean> {
     try {
         await emptyTrashDb();
 		logger.success('Trash emptied successfully');
     } catch (e) {
 		logger.error(`Failed to empty trash: ${e}`);
     }
+    return false;
 }
