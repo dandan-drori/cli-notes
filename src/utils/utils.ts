@@ -199,9 +199,9 @@ export async function shareNote(noteToShare: Note): Promise<String> {
 function buildNoteString(note: Note): string {
 	let noteStr = ``;
 	noteStr += note.lastModified
-		? new Date(note.lastModified).toLocaleString('he-il')
-		: new Date().toLocaleString('he-il');
-	const keysToSkip = ['_id', 'lastModified', 'createdAt', 'password'];
+		? new Date(note.lastModified).toLocaleString('he-IL')
+		: new Date().toLocaleString('he-IL');
+	const keysToSkip = ['_id', 'lastModified', 'createdAt', 'password', 'tags', 'deletedAt'];
 	for (const key in note) {
 		if (keysToSkip.includes(key)) continue;
 		if (key === 'text') {

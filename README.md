@@ -21,11 +21,14 @@ You can [create a Twilio account](https://www.twilio.com/), or use a different p
 
 ### Environment Variables:
 You'll first need to create an `.env` file  
-it's content will be:
+its content will be:
 ```
 MONGO_URI=<your_mongodb_connection_string>  
 NOTES_DB_NAME=<your_db_name>  
 NOTES_COL_NAME=<your_collection_name>
+TAGS_COL_NAME=<your_tags_collection_name>
+SETTINGS_COL_NAME=<your_settings_collection_name>
+TRASH_COL_NAME=<your_trash_collection_name>
 
 TWILIO_ACCOUNT_SID=<your_twilio_account_sid>
 TWILIO_AUTH_TOKEN=<your_twilio_auth_token>
@@ -40,6 +43,7 @@ YOUR_NUMBER=<your_destination_phone_number>
 ```
 $ ts-node index.ts
 ```
+* Or simply run `npm start`
 
 #### With the Typescript compiler:
 ```

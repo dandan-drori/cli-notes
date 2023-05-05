@@ -3,7 +3,7 @@ import { Logger } from './utils/logger';
 import { getAllTags, saveTag, removeTag as removeTagDb, getTagById, getTagByName as getTagByNameDb } from "./db/tags";
 import { Tag } from './models/tag';
 import { tagIdQuestion, tagNameQuestion } from './questions/tags';
-import type { ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { Note } from './models/note';
 
 const logger = new Logger();
@@ -84,10 +84,10 @@ export async function getTagByName(tagName: string): Promise<Tag> {
 }
 
 export async function getNotesWithTag(notes: Note[], tag: Tag): Promise<Note[]> {
+    const newTagId = (tag._id as object).toString();
 	return notes.filter((note: Note) => {
-		return note.tags.find(async (tagId: string) => {
-			const foundTag: Tag = await getTagById(tagId);
-            return foundTag.text === tag.text;
+        return note.tags.find((tagId: string) => {
+            return (tagId as string).toString() === newTagId;
 		})
 	});
 }

@@ -9,17 +9,22 @@ export async function getUpdatedSettings(): Promise<Settings> {
     // TODO: add loop with option to quit?
     const settings = await getSettings();
     const choices = await getSettingsProperties(settings);
-    const { settingName } = await inquirer.prompt([{...settingsQuestion, choices}]);
+    const { settingName }: { settingName: keyof Settings } = await inquirer.prompt([{...settingsQuestion, choices}]);
     const settingValuesChoices = getSettingValueOptionsByPropertyName(settingName);
+    const settingValue = await getSettingValue(settingValuesChoices);
+    return { ...settings, [settingName]: settingValue };
+}
+
+async function getSettingValue(settingValuesChoices: string[]) {
+    let returnSettingValue: string;
     if (!settingValuesChoices.length) {
         const { mainPassword } = await inquirer.prompt(mainPasswordQuestion);
-        const hashedPassword = await getHashedPassword(mainPassword);
-        (settings as any)[settingName] = hashedPassword;
-        return settings;
+        returnSettingValue = await getHashedPassword(mainPassword);
+    } else {
+        const { settingValue }: { settingValue: string } = await inquirer.prompt([{...settingValueQuestion, choices: settingValuesChoices}]);
+        returnSettingValue = settingValue;
     }
-    const { settingValue } = await inquirer.prompt([{...settingValueQuestion, choices: settingValuesChoices}]);
-    (settings as any)[settingName] = settingValue;
-    return settings;
+    return returnSettingValue;
 }
 
 export async function getSettingsProperties(settings: Settings): Promise<string[]> {

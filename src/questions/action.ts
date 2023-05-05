@@ -11,6 +11,7 @@ export enum Actions {
     tags = "TAGS",
     settings = "SETTINGS",
     trash = "TRASH",
+    quit = "QUIT"
 }
 
 export const action = [
@@ -18,6 +19,7 @@ export const action = [
         type: "list",
         name: "action",
         message: "What would you like to do?",
+        pageSize: 15,
         choices: [
             {
                 name: "List all notes",
@@ -60,12 +62,16 @@ export const action = [
                 value: Actions.tags,
             },
             {
+                name: "Manage Trash",
+                value: Actions.trash,
+            },
+            {
                 name: "Update Settings",
                 value: Actions.settings,
             },
             {
-                name: "Manage Trash",
-                value: Actions.trash,
+                name: "Quit Program",
+                value: Actions.quit,
             },
         ]
     }

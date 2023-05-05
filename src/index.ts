@@ -4,7 +4,7 @@ import inquirer from 'inquirer';
 import { ColorNames } from './colors/colorTypes'
 import { getAll, removeLockFromNote, save } from './db/mongo';
 import { Note } from './models/note';
-import { action, Actions } from './questions/action';
+import { action as actionQuestion, Actions } from './questions/action';
 import {
 	getFieldsData,
 	getLockedNotes,
@@ -33,7 +33,7 @@ import { getUpdatedSettings } from './settingsOperations';
 const logger = new Logger();
 
 async function prompt() {
-	const answers = await inquirer.prompt(action);
+	const { action }: { action: Actions } = await inquirer.prompt(actionQuestion);
 	const ActionsFunctions = {
 		[Actions.list]: listNotes,
 		[Actions.create]: createNote,
@@ -45,10 +45,11 @@ async function prompt() {
 		[Actions.unlock]: unlockNote,
 		[Actions.share]: shareNote,
 		[Actions.tags]: manageTags,
-		[Actions.settings]: editSettings,
 		[Actions.trash]: manageTrash,
+		[Actions.settings]: editSettings,
+		[Actions.quit]: quitProgram,
 	};
-	await ActionsFunctions[answers.action as Actions]();
+	await ActionsFunctions[action]();
 }
 
 async function listNotes() {
@@ -235,9 +236,12 @@ async function moveNoteToTrash() {
 	}
 }
 
+async function quitProgram() {
+	process.exit(1);
+}
+
 (async () => {
 	while(true) {
 		await prompt();
 	}
-	// process.exit(1);
 })();

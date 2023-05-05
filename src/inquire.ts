@@ -77,14 +77,16 @@ export async function getUpdatedNote(): Promise<Note> {
             default: noteStr
         },
     ]);
-    const [createdAt, title, text] = updatedNoteStr.split('\n\n');
+    const splittedNote = updatedNoteStr.split('\n\n');
+    const [createdAt, title] = splittedNote;
+    const restOfNote = splittedNote.slice(2);
+    const text = typeof restOfNote === 'string' ? restOfNote : restOfNote.join('\n\n');
     return {
-        _id: noteId,
+        ...noteToUpdate,
         title,
         text,	
         createdAt: new Date(convertDateStringToAmerican(createdAt).trim()).toISOString(),
         lastModified: new Date().toISOString(),
-        tags: noteToUpdate.tags,
     }
 }
 
