@@ -27,5 +27,10 @@ export async function updateSettings(settings: Settings) {
 
 export async function setSettings() {
 	const col = await DbClient.getCollection('settings');
-	await col.insertOne({sortBy: 'createdAt', sortDirection: 'desc'});
+	await col.insertOne({
+		sortBy: 'createdAt', 
+		sortDirection: 'desc', 
+		searchHighlightColor: 'red', 
+		mainPassword: ''
+	});
 }
