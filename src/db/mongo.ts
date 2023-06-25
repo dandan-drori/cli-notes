@@ -30,8 +30,8 @@ async function insertOne(note: Note) {
 
 async function update(note: Note): Promise<Note> {
   const noteToSave = {
-    _id: new ObjectId(note._id),
-    ...note
+    ...note,
+    _id: new ObjectId(note._id)
   }
   const col = await DbClient.getCollection();
   const result = await col.findOneAndUpdate({ _id: noteToSave._id }, { $set: noteToSave });
@@ -60,7 +60,8 @@ async function remove(noteId: string): Promise<Note> {
 async function lockNote(note: Note, password: string, mainPassword?: string) {
   const rounds = 10;
   note.password = mainPassword || await hash(password, rounds);
-  return await update(note);
+  await update(note);
+  return note;
 }
 
 async function unlockNote(note: Note, password: string) {
@@ -82,6 +83,15 @@ async function removeLockFromNote(note: Note) {
   return col.findOneAndUpdate({ _id: note._id }, { $unset: {password: ''} });
 }
 
+async function getNoteInTrash(noteId: string) {
+  const col = await DbClient.getCollection('trash');
+  const note = await col.findOne<Note>({ _id: new ObjectId(noteId) });
+  if (note) {
+    return note as Note;
+  }
+  throw new Error('Failed to retrieve notes');
+}
+
 async function getNotesInTrash() {
   const col = await DbClient.getCollection('trash');
   const result = await col.find({}).toArray();
@@ -94,8 +104,10 @@ async function getNotesInTrash() {
 async function moveNoteToTrash(note: Note): Promise<Note> {
   const notesCol = await DbClient.getCollection();
   const trashCol = await DbClient.getCollection('trash');
-  await trashCol.insertOne(note);
   const result = await notesCol.findOneAndDelete({ _id: new ObjectId(note._id) });
+  delete note._id;
+  note.deletedAt = Date.now();
+  await trashCol.insertOne(note);
   if (result.value) {
     return result.value as Note;
   }
@@ -105,8 +117,10 @@ async function moveNoteToTrash(note: Note): Promise<Note> {
 async function restoreNoteFromTrash(note: Note): Promise<Note> {
   const notesCol = await DbClient.getCollection();
   const trashCol = await DbClient.getCollection('trash');
-  await notesCol.insertOne(note);
   const result = await trashCol.findOneAndDelete({ _id: new ObjectId(note._id) });
+  delete note._id;
+  delete note.deletedAt;
+  await notesCol.insertOne(note);
   if (result.value) {
     return result.value as Note;
   }
